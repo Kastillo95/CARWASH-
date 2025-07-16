@@ -165,8 +165,8 @@ function updateSaleTable() {
                 <input type="number" class="form-control" value="${item.quantity}" min="1" 
                        onchange="updateQuantity(${index}, this.value)">
             </td>
-            <td>$${item.unit_price.toLocaleString()}</td>
-            <td>$${item.subtotal.toLocaleString()}</td>
+            <td>L. ${item.unit_price.toLocaleString()}</td>
+            <td>L. ${item.subtotal.toLocaleString()}</td>
             <td>
                 <button type="button" class="btn btn-sm btn-danger" onclick="removeItem(${index})">
                     <i class="fas fa-trash"></i>
@@ -194,7 +194,7 @@ function removeItem(index) {
 
 function updateTotal() {
     const subtotal = saleItems.reduce((sum, item) => sum + item.subtotal, 0);
-    
+
     // Check for promotions
     fetch(`/api/check_promotion?total=${subtotal}`)
         .then(response => response.json())
@@ -206,7 +206,7 @@ function updateTotal() {
                 promoInfo.className = 'alert alert-info mt-2';
                 document.getElementById('total_amount').parentNode.appendChild(promoInfo);
             }
-            
+
             if (data.has_promotion) {
                 totalAmount = subtotal - data.discount;
                 promoInfo.innerHTML = `
@@ -220,7 +220,7 @@ function updateTotal() {
                 totalAmount = subtotal;
                 promoInfo.style.display = 'none';
             }
-            
+
             document.getElementById('total_amount').textContent = totalAmount.toLocaleString();
             document.getElementById('items_input').value = JSON.stringify(saleItems);
 
