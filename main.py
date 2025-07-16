@@ -180,8 +180,46 @@ def require_system_access():
         return decorated_function
     return decorator
 
+# Access control decorator for system access
+def require_system_login():
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not session.get('system_logged_in'):
+                return redirect(url_for('system_login'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
 # Routes
 @app.route('/')
+def index():
+    if not session.get('system_logged_in'):
+        return redirect(url_for('system_login'))
+    return redirect(url_for('dashboard'))
+
+@app.route('/system_login', methods=['GET', 'POST'])
+def system_login():
+    if request.method == 'POST':
+        password = request.form['password']
+        if password == '742211010338':
+            session['system_logged_in'] = True
+            session['admin_logged_in'] = True  # También dar acceso admin
+            flash('Acceso autorizado al sistema', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Contraseña incorrecta', 'error')
+
+    return render_template('system_login.html')
+
+@app.route('/system_logout')
+def system_logout():
+    session.clear()
+    flash('Sesión cerrada', 'info')
+    return redirect(url_for('system_login'))
+
+@app.route('/dashboard')
+@require_system_login()
 def dashboard():
     conn = get_db_connection()
 
@@ -212,7 +250,7 @@ def dashboard():
                          recent_sales=recent_sales)
 
 @app.route('/products')
-@require_system_access()
+@require_system_login()
 def products():
     conn = get_db_connection()
     products = conn.execute("SELECT * FROM products ORDER BY name").fetchall()
@@ -220,7 +258,7 @@ def products():
     return render_template('products.html', products=products)
 
 @app.route('/products/add', methods=['GET', 'POST'])
-@require_system_access()
+@require_system_login()
 def add_product():
     if request.method == 'POST':
         name = request.form['name']
@@ -260,7 +298,7 @@ def add_product():
     return render_template('add_product.html')
 
 @app.route('/customers')
-@require_system_access()
+@require_system_login()
 def customers():
     conn = get_db_connection()
     customers = conn.execute("SELECT * FROM customers ORDER BY name").fetchall()
@@ -268,7 +306,7 @@ def customers():
     return render_template('customers.html', customers=customers)
 
 @app.route('/customers/add', methods=['GET', 'POST'])
-@require_system_access()
+@require_system_login()
 def add_customer():
     if request.method == 'POST':
         name = request.form['name']
@@ -289,7 +327,7 @@ def add_customer():
     return render_template('add_customer.html')
 
 @app.route('/sales')
-@require_system_access()
+@require_system_login()
 def sales():
     conn = get_db_connection()
     sales = conn.execute("""
@@ -302,7 +340,7 @@ def sales():
     return render_template('sales.html', sales=sales)
 
 @app.route('/sales/new', methods=['GET', 'POST'])
-@require_system_access()
+@require_system_login()
 def new_sale():
     if request.method == 'POST':
         customer_id = request.form.get('customer_id') or None
@@ -354,7 +392,7 @@ def new_sale():
     return render_template('new_sale.html', products=products, customers=customers)
 
 @app.route('/sales/<int:sale_id>/invoice')
-@require_system_access()
+@require_system_login()
 def view_invoice(sale_id):
     conn = get_db_connection()
 
@@ -377,12 +415,12 @@ def view_invoice(sale_id):
     return render_template('invoice.html', sale=sale, items=items)
 
 @app.route('/reports')
-@require_system_access()
+@require_system_login()
 def reports():
     return render_template('reports.html')
 
 @app.route('/reports/sales_excel')
-@require_system_access()
+@require_system_login()
 def export_sales_excel():
     conn = get_db_connection()
 
@@ -419,7 +457,7 @@ def export_sales_excel():
     )
 
 @app.route('/reports/inventory_excel')
-@require_system_access()
+@require_system_login()
 def export_inventory_excel():
     conn = get_db_connection()
 
@@ -473,7 +511,7 @@ def admin_logout():
     return redirect(url_for('products'))
 
 @app.route('/products/<int:product_id>/edit', methods=['POST'])
-@require_system_access()
+@require_system_login()
 def edit_product(product_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
@@ -523,7 +561,7 @@ def search_product():
         return jsonify({'success': False, 'message': 'Producto no encontrado'})
 
 @app.route('/sync_inventory', methods=['GET', 'POST'])
-@require_system_access()
+@require_system_login()
 def sync_inventory():
     if request.method == 'POST':
         password = request.form['password']
@@ -569,7 +607,7 @@ def sync_inventory():
     return render_template('sync_inventory.html')
 
 @app.route('/promotions')
-@require_system_access()
+@require_system_login()
 def promotions():
     conn = get_db_connection()
     promotions = conn.execute("SELECT * FROM promotions ORDER BY is_active DESC, created_at DESC").fetchall()
@@ -577,7 +615,7 @@ def promotions():
     return render_template('promotions.html', promotions=promotions)
 
 @app.route('/promotions/add', methods=['GET', 'POST'])
-@require_system_access()
+@require_system_login()
 def add_promotion():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
@@ -610,7 +648,7 @@ def add_promotion():
     return render_template('add_promotion.html')
 
 @app.route('/promotions/<int:promo_id>/toggle')
-@require_system_access()
+@require_system_login()
 def toggle_promotion(promo_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
