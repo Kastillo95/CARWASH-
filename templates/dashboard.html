@@ -1,442 +1,256 @@
-{% extends "base.html" %}
-
-{% block title %}Dashboard - Carwash Peña Blanca{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <div class="d-flex align-items-center">
-                <img src="{{ url_for('static', filename='IMG-20250624-WA0043_1752632246954.jpg') }}" 
-                     alt="Carwash Peña Blanca Logo" 
-                     style="width: 80px; height: 80px; object-fit: contain; margin-right: 20px;">
-                <h1 class="mb-0">Dashboard</h1>
-            </div>
-            <div class="d-flex align-items-center">
-                <span class="badge bg-warning text-dark me-2">
-                    <i class="fas fa-star me-1"></i>
-                    <span id="promo-text">¡Lavado Premium + Encerado por L. 320!</span>
-                </span>
-                <button class="btn btn-sm btn-outline-warning" onclick="editPromotions()" title="Editar Promociones">
-                    <i class="fas fa-edit"></i>
-                </button>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Carwash Peña Blanca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-car me-2"></i>Carwash Peña Blanca
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/products"><i class="fas fa-box me-1"></i>Inventario</a>
+                <a class="nav-link" href="/customers"><i class="fas fa-users me-1"></i>Clientes</a>
+                <a class="nav-link" href="/sales"><i class="fas fa-shopping-cart me-1"></i>Ventas</a>
+                <a class="nav-link" href="/sales/new"><i class="fas fa-plus me-1"></i>Nueva Venta</a>
+                <a class="nav-link" href="/reports"><i class="fas fa-chart-bar me-1"></i>Reportes</a>
             </div>
         </div>
-    </div>
-</div>
+    </nav>
 
-<!-- Modal para editar promociones -->
-<div class="modal fade" id="promoModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-star me-2"></i>Editar Promociones</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Promoción Principal (se muestra en el header)</label>
-                    <input type="text" class="form-control" id="edit-main-promo" placeholder="Ej: ¡Lavado Premium + Encerado por L. 320!">
-                </div>
-                <hr>
-                <h6>Promociones Adicionales</h6>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Promoción 2</label>
-                            <input type="text" class="form-control" id="edit-promo2" placeholder="Ej: Combo Familiar 2x1">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label">Promoción 3</label>
-                            <input type="text" class="form-control" id="edit-promo3" placeholder="Ej: Descuento estudiantes 15%">
+    <div class="container-fluid mt-4">
+        <!-- Estadísticas principales -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h5>Productos</h5>
+                                <h2>{{ total_products }}</h2>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-box fa-2x"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" onclick="savePromotions()">
-                    <i class="fas fa-save me-1"></i>Guardar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h5 class="card-title">Productos</h5>
-                        <h3>{{ total_products }}</h3>
-                    </div>
-                    <div class="col-auto">
-                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
-                            <i class="fas fa-boxes text-white fa-2x"></i>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h5>Clientes</h5>
+                                <h2>{{ total_customers }}</h2>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h5 class="card-title">Clientes</h5>
-                        <h3>{{ total_customers }}</h3>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h5>Ventas</h5>
+                                <h2>{{ total_sales }}</h2>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-shopping-cart fa-2x"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-auto">
-                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
-                            <i class="fas fa-users text-white fa-2x"></i>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5>Ingresos Hoy</h5>
+                                <h2>${{ "%.2f"|format(daily_revenue) }}</h2>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-dollar-sign fa-2x me-2"></i>
+                                <a href="/admin/login" class="text-white" title="Editar promociones">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h5 class="card-title">Ventas</h5>
-                        <h3>{{ total_sales }}</h3>
+
+        <!-- Ventas recientes -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-clock me-2"></i>Ventas Recientes</h5>
                     </div>
-                    <div class="col-auto">
-                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
-                            <i class="fas fa-shopping-cart text-white fa-2x"></i>
+                    <div class="card-body">
+                        {% if recent_sales %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Factura</th>
+                                        <th>Cliente</th>
+                                        <th>Total</th>
+                                        <th>Fecha</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sale in recent_sales %}
+                                    <tr>
+                                        <td>{{ sale.invoice_number }}</td>
+                                        <td>{{ sale.customer_name or 'Cliente General' }}</td>
+                                        <td>${{ "%.2f"|format(sale.total) }}</td>
+                                        <td>{{ sale.created_at }}</td>
+                                        <td>
+                                            <a href="/sales/{{ sale.id }}/invoice" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
+                        {% else %}
+                        <p class="text-muted">No hay ventas recientes</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line me-2"></i>Ventas Diarias (Últimos 7 días)</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="dailySalesChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar me-2"></i>Productos Más Vendidos</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="topProductsChart" width="400" height="200"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3 mb-3">
-        <div class="card bg-warning text-dark">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h5 class="card-title">Ingresos Hoy</h5>
-                        <h3>L. {{ "{:,.2f}".format(daily_revenue) }}</h3>
-                    </div>
-                    <div class="col-auto">
-                        <div class="bg-dark bg-opacity-25 rounded-circle p-3">
-                            <i class="fas fa-hand-holding-usd text-dark fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Ventas Recientes</h5>
-            </div>
-            <div class="card-body">
-                {% if recent_sales %}
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Factura</th>
-                                <th>Cliente</th>
-                                <th>Total</th>
-                                <th>Fecha</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for sale in recent_sales %}
-                            <tr>
-                                <td>{{ sale.invoice_number }}</td>
-                                <td>{{ sale.customer_name or 'Cliente General' }}</td>
-                                <td>L. {{ "{:,.2f}".format(sale.total) }}</td>
-                                <td>{{ sale.created_at[:16] }}</td>
-                                <td>
-                                    <a href="{{ url_for('view_invoice', sale_id=sale.id) }}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye"></i> Ver
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <p class="text-muted">No hay ventas registradas.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Cargar datos del dashboard
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/dashboard_data');
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+                const data = await response.json();
 
-<div class="row mt-4">
-    <div class="col-md-6">
-        <a href="{{ url_for('new_sale') }}" class="btn btn-success btn-lg w-100">
-            <i class="fas fa-plus me-2"></i>Nueva Venta
-        </a>
-    </div>
-    <div class="col-md-6">
-        <a href="{{ url_for('add_product') }}" class="btn btn-primary btn-lg w-100">
-            <i class="fas fa-box me-2"></i>Nuevo Producto
-        </a>
-    </div>
-</div>
+                // Crear gráfico de ventas diarias
+                createDailySalesChart(data.daily_sales || []);
 
-<!-- Gráficas y Reportes al final -->
-<div class="row mt-5">
-    <div class="col-12">
-        <h4 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Reportes y Análisis</h4>
-    </div>
-</div>
+                // Crear gráfico de productos más vendidos
+                createTopProductsChart(data.top_products || []);
 
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-chart-line me-2"></i>Ventas de los Últimos 7 Días</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="salesChart" width="400" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-chart-pie me-2"></i>Ventas por Categoría</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="categoryChart" width="200" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
+            } catch (error) {
+                console.error('Error cargando datos del dashboard:', error);
+                // Crear gráficos vacíos si hay error
+                createDailySalesChart([]);
+                createTopProductsChart([]);
+            }
+        }
 
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-trophy me-2"></i>Productos/Servicios Más Vendidos</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="topProductsChart" width="400" height="300"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
+        function createDailySalesChart(data) {
+            const ctx = document.getElementById('dailySalesChart');
+            if (!ctx) return;
 
-</div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-// Cargar datos del dashboard
-fetch('/api/dashboard_data')
-    .then(response => response.json())
-    .then(data => {
-        // Gráfico de ventas diarias
-        const salesCtx = document.getElementById('salesChart').getContext('2d');
-        new Chart(salesCtx, {
-            type: 'line',
-            data: {
-                labels: data.daily_sales.map(item => item.date),
-                datasets: [{
-                    label: 'Ventas (L.)',
-                    data: data.daily_sales.map(item => item.total),
-                    borderColor: '#1e3a5f',
-                    backgroundColor: 'rgba(30, 58, 95, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return 'L. ' + value.toLocaleString();
-                            }
+            const chartCtx = ctx.getContext('2d');
+            new Chart(chartCtx, {
+                type: 'line',
+                data: {
+                    labels: data.map(item => item.date || 'Sin fecha'),
+                    datasets: [{
+                        label: 'Ventas ($)',
+                        data: data.map(item => item.total || 0),
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
                         }
                     }
                 }
-            }
-        });
+            });
+        }
 
-        // Gráfico de categorías
-        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-        new Chart(categoryCtx, {
-            type: 'doughnut',
-            data: {
-                labels: data.category_sales.map(item => item.category),
-                datasets: [{
-                    data: data.category_sales.map(item => item.total),
-                    backgroundColor: ['#1e3a5f', '#c8102e', '#17a2b8', '#ffc107', '#28a745']
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
+        function createTopProductsChart(data) {
+            const ctx = document.getElementById('topProductsChart');
+            if (!ctx) return;
+
+            const chartCtx = ctx.getContext('2d');
+            new Chart(chartCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(item => item.name || 'Sin nombre'),
+                    datasets: [{
+                        label: 'Cantidad Vendida',
+                        data: data.map(item => item.quantity || 0),
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 205, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
                     }
                 }
-            }
+            });
+        }
+
+        // Cargar datos cuando la página esté lista
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
         });
-
-        // Gráfico de productos más vendidos
-        const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
-        new Chart(topProductsCtx, {
-            type: 'bar',
-            data: {
-                labels: data.top_products.map(item => item.name),
-                datasets: [{
-                    label: 'Cantidad Vendida',
-                    data: data.top_products.map(item => item.quantity),
-                    backgroundColor: '#c8102e',
-                    borderColor: '#1e3a5f',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    })
-    .catch(error => {
-        console.error('Error cargando datos del dashboard:', error);
-    });
-
-// Funciones para editar promociones
-function editPromotions() {
-    // Cargar valores actuales
-    const savedPromotions = localStorage.getItem('promotions');
-    if (savedPromotions) {
-        const promos = JSON.parse(savedPromotions);
-        document.getElementById('edit-main-promo').value = promos.main || '¡Lavado Premium + Encerado por L. 320!';
-        document.getElementById('edit-promo2').value = promos.promo2 || 'Combo Familiar 2x1';
-        document.getElementById('edit-promo3').value = promos.promo3 || 'Descuento estudiantes 15%';
-    } else {
-        document.getElementById('edit-main-promo').value = '¡Lavado Premium + Encerado por L. 320!';
-        document.getElementById('edit-promo2').value = 'Combo Familiar 2x1';
-        document.getElementById('edit-promo3').value = 'Descuento estudiantes 15%';
-    }
-    
-    // Mostrar modal
-    const modal = new bootstrap.Modal(document.getElementById('promoModal'));
-    modal.show();
-}
-
-function savePromotions() {
-    // Obtener valores
-    const mainPromo = document.getElementById('edit-main-promo').value;
-    const promo2 = document.getElementById('edit-promo2').value;
-    const promo3 = document.getElementById('edit-promo3').value;
-    
-    // Actualizar texto principal
-    document.getElementById('promo-text').textContent = mainPromo;
-    
-    // Guardar en localStorage
-    localStorage.setItem('promotions', JSON.stringify({
-        main: mainPromo,
-        promo2: promo2,
-        promo3: promo3
-    }));
-    
-    // Cerrar modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('promoModal'));
-    modal.hide();
-}
-
-// Cargar promociones guardadas al cargar la página
-window.addEventListener('load', function() {
-    const savedPromotions = localStorage.getItem('promotions');
-    if (savedPromotions) {
-        const promos = JSON.parse(savedPromotions);
-        if (promos.main) {
-            document.getElementById('promo-text').textContent = promos.main;
-        }
-    }
-});
-
-// Funciones para los gráficos
-let salesChart, productsChart;
-
-function updateSalesChart() {
-    // Aquí se actualizaría con datos reales según el período seleccionado
-    const period = document.getElementById('sales-period').value;
-    // Por ahora datos de ejemplo
-    if (salesChart) salesChart.destroy();
-    
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    salesChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'],
-            datasets: [{
-                label: 'Ventas L.',
-                data: [1200, 1900, 3000, 5000, 2000, 3000, 4500],
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
-}
-
-function updateProductsChart() {
-    const period = document.getElementById('products-period').value;
-    if (productsChart) productsChart.destroy();
-    
-    const ctx = document.getElementById('productsChart').getContext('2d');
-    productsChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Lavado Premium', 'Lavado Básico', 'Encerado', 'Pulida Rines'],
-            datasets: [{
-                data: [35, 25, 20, 20],
-                backgroundColor: [
-                    'rgb(54, 162, 235)',
-                    'rgb(255, 205, 86)',
-                    'rgb(255, 99, 132)',
-                    'rgb(75, 192, 192)'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
-}
-
-// Inicializar gráficos
-setTimeout(() => {
-    updateSalesChart();
-    updateProductsChart();
-}, 500);
-</script>
-{% endblock %}
+    </script>
+</body>
+</html>
