@@ -833,7 +833,7 @@ def dashboard_data():
         FROM sales s
         WHERE s.created_at >= DATE('now', '-{period} days')
         GROUP BY strftime('%w', s.created_at)
-        ORDER BY CAST(strftime('%w', s.created_at) AS INTEGER)```python
+        ORDER BY CAST(strftime('%w', s.created_at) AS INTEGER)
     """).fetchall()
 
     # Estado del inventario
