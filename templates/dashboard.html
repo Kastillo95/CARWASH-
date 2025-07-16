@@ -14,13 +14,15 @@
     <div class="col-md-3 mb-3">
         <div class="card bg-primary text-white">
             <div class="card-body">
-                <div class="row">
+                <div class="row align-items-center">
                     <div class="col">
                         <h5 class="card-title">Productos</h5>
                         <h3>{{ total_products }}</h3>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-box fa-2x"></i>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="fas fa-boxes text-white fa-2x"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -29,13 +31,15 @@
     <div class="col-md-3 mb-3">
         <div class="card bg-success text-white">
             <div class="card-body">
-                <div class="row">
+                <div class="row align-items-center">
                     <div class="col">
                         <h5 class="card-title">Clientes</h5>
                         <h3>{{ total_customers }}</h3>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-users fa-2x"></i>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="fas fa-users text-white fa-2x"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -44,28 +48,32 @@
     <div class="col-md-3 mb-3">
         <div class="card bg-info text-white">
             <div class="card-body">
-                <div class="row">
+                <div class="row align-items-center">
                     <div class="col">
                         <h5 class="card-title">Ventas</h5>
                         <h3>{{ total_sales }}</h3>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-shopping-cart fa-2x"></i>
+                        <div class="bg-white bg-opacity-25 rounded-circle p-3">
+                            <i class="fas fa-shopping-cart text-white fa-2x"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="card bg-warning text-white">
+        <div class="card bg-warning text-dark">
             <div class="card-body">
-                <div class="row">
+                <div class="row align-items-center">
                     <div class="col">
                         <h5 class="card-title">Ingresos Hoy</h5>
-                        <h3>${{ "{:,.0f}".format(daily_revenue) }}</h3>
+                        <h3>L. {{ "{:,.2f}".format(daily_revenue) }}</h3>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-dollar-sign fa-2x"></i>
+                        <div class="bg-dark bg-opacity-25 rounded-circle p-3">
+                            <i class="fas fa-hand-holding-usd text-dark fa-2x"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -97,7 +105,7 @@
                             <tr>
                                 <td>{{ sale.invoice_number }}</td>
                                 <td>{{ sale.customer_name or 'Cliente General' }}</td>
-                                <td>${{ "{:,.0f}".format(sale.total) }}</td>
+                                <td>L. {{ "{:,.2f}".format(sale.total) }}</td>
                                 <td>{{ sale.created_at[:16] }}</td>
                                 <td>
                                     <a href="{{ url_for('view_invoice', sale_id=sale.id) }}" class="btn btn-sm btn-outline-primary">

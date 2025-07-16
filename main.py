@@ -284,7 +284,8 @@ def export_sales_excel():
     conn.close()
     
     # Convert to DataFrame
-    df = pd.DataFrame(sales_data, columns=[desc[0] for desc in conn.description])
+    columns = ['Número Factura', 'Cliente', 'Total', 'Método Pago', 'Fecha']
+    df = pd.DataFrame(sales_data, columns=columns)
     
     # Create Excel file in memory
     output = BytesIO()

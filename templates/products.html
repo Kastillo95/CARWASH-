@@ -37,7 +37,7 @@
                             <tr>
                                 <td>{{ product.name }}</td>
                                 <td>{{ product.description }}</td>
-                                <td>${{ "{:,.0f}".format(product.price) }}</td>
+                                <td>L. {{ "{:,.2f}".format(product.price) }}</td>
                                 <td>
                                     <span class="badge {% if product.stock > 10 %}bg-success{% elif product.stock > 0 %}bg-warning{% else %}bg-danger{% endif %}">
                                         {{ product.stock }}

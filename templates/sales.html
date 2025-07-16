@@ -37,7 +37,7 @@
                             <tr>
                                 <td>{{ sale.invoice_number }}</td>
                                 <td>{{ sale.customer_name or 'Cliente General' }}</td>
-                                <td>${{ "{:,.0f}".format(sale.total) }}</td>
+                                <td>L. {{ "{:,.2f}".format(sale.total) }}</td>
                                 <td>{{ sale.created_at[:16] }}</td>
                                 <td>
                                     <span class="badge bg-success">{{ sale.status.title() }}</span>
