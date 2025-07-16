@@ -122,6 +122,14 @@ def init_db():
         ]
         cursor.executemany("INSERT INTO products (name, description, price, stock, category, barcode, service_code) VALUES (?, ?, ?, ?, ?, ?, ?)", sample_products)
 
+    # Insert sample customer
+    cursor.execute("SELECT COUNT(*) FROM customers")
+    if cursor.fetchone()[0] == 0:
+        sample_customers = [
+            ('dennis castillo', '97164446', 'd99184263@gmail.com', 'peña blanca cortes')
+        ]
+        cursor.executemany("INSERT INTO customers (name, phone, email, address) VALUES (?, ?, ?, ?)", sample_customers)
+
     conn.commit()
     conn.close()
 
@@ -679,12 +687,12 @@ def check_promotion():
 def dashboard_data():
     period = int(request.args.get('period', 30))
     category = request.args.get('category', 'all')
-    
+
     conn = get_db_connection()
 
     # Construir filtros dinámicos
     category_filter = "" if category == 'all' else f"AND p.category = '{category}'"
-    
+
     # Ventas por día
     daily_sales = conn.execute(f"""
         SELECT DATE(s.created_at) as date, SUM(s.total) as total, COUNT(*) as count
