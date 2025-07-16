@@ -193,12 +193,49 @@ function removeItem(index) {
 }
 
 function updateTotal() {
-    totalAmount = saleItems.reduce((sum, item) => sum + item.subtotal, 0);
-    document.getElementById('total_amount').textContent = totalAmount.toLocaleString();
-    document.getElementById('items_input').value = JSON.stringify(saleItems);
+    const subtotal = saleItems.reduce((sum, item) => sum + item.subtotal, 0);
+    
+    // Check for promotions
+    fetch(`/api/check_promotion?total=${subtotal}`)
+        .then(response => response.json())
+        .then(data => {
+            let promoInfo = document.getElementById('promo_info');
+            if (!promoInfo) {
+                promoInfo = document.createElement('div');
+                promoInfo.id = 'promo_info';
+                promoInfo.className = 'alert alert-info mt-2';
+                document.getElementById('total_amount').parentNode.appendChild(promoInfo);
+            }
+            
+            if (data.has_promotion) {
+                totalAmount = subtotal - data.discount;
+                promoInfo.innerHTML = `
+                    <i class="fas fa-gift me-2"></i>
+                    <strong>${data.promo_name}</strong><br>
+                    ${data.promo_description}<br>
+                    Descuento aplicado: L. ${data.discount.toLocaleString()}
+                `;
+                promoInfo.style.display = 'block';
+            } else {
+                totalAmount = subtotal;
+                promoInfo.style.display = 'none';
+            }
+            
+            document.getElementById('total_amount').textContent = totalAmount.toLocaleString();
+            document.getElementById('items_input').value = JSON.stringify(saleItems);
 
-    const submitBtn = document.getElementById('submit_btn');
-    submitBtn.disabled = saleItems.length === 0;
+            const submitBtn = document.getElementById('submit_btn');
+            submitBtn.disabled = saleItems.length === 0;
+        })
+        .catch(error => {
+            console.error('Error checking promotions:', error);
+            totalAmount = subtotal;
+            document.getElementById('total_amount').textContent = totalAmount.toLocaleString();
+            document.getElementById('items_input').value = JSON.stringify(saleItems);
+
+            const submitBtn = document.getElementById('submit_btn');
+            submitBtn.disabled = saleItems.length === 0;
+        });
 }
 
 function searchProduct() {

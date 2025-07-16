@@ -76,6 +76,36 @@ def init_db():
         )
     ''')
     
+    # Promotions table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS promotions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            discount_percentage REAL DEFAULT 0,
+            discount_amount REAL DEFAULT 0,
+            min_purchase REAL DEFAULT 0,
+            max_discount REAL DEFAULT 0,
+            start_date DATE,
+            end_date DATE,
+            is_active BOOLEAN DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Insert sample promotions
+    cursor.execute("SELECT COUNT(*) FROM promotions")
+    if cursor.fetchone()[0] == 0:
+        sample_promotions = [
+            ('Descuento 10%', 'Descuento del 10% en compras mayores a L. 200', 10.0, 0, 200.0, 50.0, '2025-01-01', '2025-12-31', 1),
+            ('Descuento L. 25', 'Descuento fijo de L. 25 en compras mayores a L. 150', 0, 25.0, 150.0, 25.0, '2025-01-01', '2025-12-31', 1),
+            ('Promoción Premium', 'Descuento 15% en servicios premium', 15.0, 0, 300.0, 100.0, '2025-01-01', '2025-12-31', 1)
+        ]
+        cursor.executemany(
+            "INSERT INTO promotions (name, description, discount_percentage, discount_amount, min_purchase, max_discount, start_date, end_date, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+            sample_promotions
+        )
+    
     # Insert sample data
     cursor.execute("SELECT COUNT(*) FROM products")
     if cursor.fetchone()[0] == 0:
@@ -103,6 +133,40 @@ def get_db_connection():
 
 def generate_invoice_number():
     return f"CWP-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+def calculate_promotional_discount(subtotal):
+    """Calcula el mejor descuento promocional aplicable"""
+    conn = get_db_connection()
+    
+    # Obtener promociones activas válidas para el subtotal
+    promotions = conn.execute("""
+        SELECT * FROM promotions 
+        WHERE is_active = 1 
+        AND min_purchase <= ? 
+        AND (end_date >= DATE('now') OR end_date IS NULL)
+        ORDER BY discount_percentage DESC, discount_amount DESC
+    """, (subtotal,)).fetchall()
+    
+    conn.close()
+    
+    best_discount = 0
+    applied_promo = None
+    
+    for promo in promotions:
+        if promo['discount_percentage'] > 0:
+            # Descuento porcentual
+            discount = (subtotal * promo['discount_percentage']) / 100
+            if promo['max_discount'] > 0:
+                discount = min(discount, promo['max_discount'])
+        else:
+            # Descuento fijo
+            discount = promo['discount_amount']
+        
+        if discount > best_discount:
+            best_discount = discount
+            applied_promo = promo
+    
+    return best_discount, applied_promo
 
 # Routes
 @app.route('/')
@@ -152,10 +216,28 @@ def add_product():
         category = request.form['category']
         
         conn = get_db_connection()
-        conn.execute(
-            "INSERT INTO products (name, description, price, stock, category) VALUES (?, ?, ?, ?, ?)",
-            (name, description, price, stock, category)
-        )
+        
+        # Verificar si el producto ya existe
+        existing_product = conn.execute(
+            "SELECT * FROM products WHERE LOWER(name) = LOWER(?)", (name,)
+        ).fetchone()
+        
+        if existing_product:
+            # Si existe, solo actualizar la cantidad
+            new_stock = existing_product['stock'] + stock
+            conn.execute(
+                "UPDATE products SET stock = ? WHERE id = ?",
+                (new_stock, existing_product['id'])
+            )
+            flash(f'Producto existente actualizado. Nueva cantidad: {new_stock}', 'info')
+        else:
+            # Si no existe, crear nuevo
+            conn.execute(
+                "INSERT INTO products (name, description, price, stock, category) VALUES (?, ?, ?, ?, ?)",
+                (name, description, price, stock, category)
+            )
+            flash('Producto agregado exitosamente', 'success')
+        
         conn.commit()
         conn.close()
         
@@ -212,13 +294,18 @@ def new_sale():
         conn = get_db_connection()
         
         # Calculate totals
-        total = sum(float(item['subtotal']) for item in items)
+        subtotal = sum(float(item['subtotal']) for item in items)
+        
+        # Calcular descuento promocional
+        promotional_discount, applied_promo = calculate_promotional_discount(subtotal)
+        
+        total = subtotal - promotional_discount
         invoice_number = generate_invoice_number()
         
         # Insert sale
         cursor = conn.execute(
-            "INSERT INTO sales (customer_id, total, payment_method, invoice_number) VALUES (?, ?, ?, ?)",
-            (customer_id, total, payment_method, invoice_number)
+            "INSERT INTO sales (customer_id, total, discount, payment_method, invoice_number) VALUES (?, ?, ?, ?, ?)",
+            (customer_id, total, promotional_discount, payment_method, invoice_number)
         )
         sale_id = cursor.lastrowid
         
@@ -363,28 +450,22 @@ def admin_logout():
     flash('Sesión administrativa cerrada', 'info')
     return redirect(url_for('products'))
 
-@app.route('/products/<int:product_id>/edit', methods=['GET', 'POST'])
-def edit_product():
+@app.route('/products/<int:product_id>/edit', methods=['POST'])
+def edit_product(product_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     
     conn = get_db_connection()
     
-    if request.method == 'POST':
-        product_id = request.form['product_id']
-        price = float(request.form['price'])
-        
-        conn.execute("UPDATE products SET price = ? WHERE id = ?", (price, product_id))
-        conn.commit()
-        conn.close()
-        
-        flash('Precio actualizado correctamente', 'success')
-        return redirect(url_for('products'))
+    price = float(request.form['price'])
+    stock = int(request.form.get('stock', 0))
     
-    product = conn.execute("SELECT * FROM products WHERE id = ?", (request.args.get('id'),)).fetchone()
+    conn.execute("UPDATE products SET price = ?, stock = ? WHERE id = ?", (price, stock, product_id))
+    conn.commit()
     conn.close()
     
-    return render_template('edit_product.html', product=product)
+    flash('Producto actualizado correctamente', 'success')
+    return redirect(url_for('products'))
 
 @app.route('/api/search_product')
 def search_product():
@@ -462,6 +543,72 @@ def sync_inventory():
             flash('Solo archivos .xlsx son permitidos', 'error')
     
     return render_template('sync_inventory.html')
+
+@app.route('/promotions')
+def promotions():
+    conn = get_db_connection()
+    promotions = conn.execute("SELECT * FROM promotions ORDER BY is_active DESC, created_at DESC").fetchall()
+    conn.close()
+    return render_template('promotions.html', promotions=promotions)
+
+@app.route('/promotions/add', methods=['GET', 'POST'])
+def add_promotion():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+        
+    if request.method == 'POST':
+        name = request.form['name']
+        description = request.form['description']
+        discount_type = request.form['discount_type']
+        discount_value = float(request.form['discount_value'])
+        min_purchase = float(request.form['min_purchase'])
+        max_discount = float(request.form.get('max_discount', 0))
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+        
+        discount_percentage = discount_value if discount_type == 'percentage' else 0
+        discount_amount = discount_value if discount_type == 'fixed' else 0
+        
+        conn = get_db_connection()
+        conn.execute("""
+            INSERT INTO promotions (name, description, discount_percentage, discount_amount, 
+                                  min_purchase, max_discount, start_date, end_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (name, description, discount_percentage, discount_amount, min_purchase, max_discount, start_date, end_date))
+        conn.commit()
+        conn.close()
+        
+        flash('Promoción agregada exitosamente', 'success')
+        return redirect(url_for('promotions'))
+    
+    return render_template('add_promotion.html')
+
+@app.route('/promotions/<int:promo_id>/toggle')
+def toggle_promotion(promo_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+        
+    conn = get_db_connection()
+    conn.execute("UPDATE promotions SET is_active = NOT is_active WHERE id = ?", (promo_id,))
+    conn.commit()
+    conn.close()
+    
+    return redirect(url_for('promotions'))
+
+@app.route('/api/check_promotion')
+def check_promotion():
+    total = float(request.args.get('total', 0))
+    discount, promo = calculate_promotional_discount(total)
+    
+    if promo:
+        return jsonify({
+            'has_promotion': True,
+            'discount': discount,
+            'promo_name': promo['name'],
+            'promo_description': promo['description']
+        })
+    else:
+        return jsonify({'has_promotion': False})
 
 @app.route('/api/dashboard_data')
 def dashboard_data():
