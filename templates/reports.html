@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -390,20 +389,20 @@
             try {
                 const period = document.getElementById('periodFilter').value;
                 const category = document.getElementById('categoryFilter').value;
-                
+
                 // Simular llamada a API con datos más complejos
                 const response = await fetch(`/api/dashboard_data?period=${period}&category=${category}`);
                 const data = await response.json();
-                
+
                 // Almacenar datos
                 chartData = data;
-                
+
                 // Actualizar métricas
                 updateMetrics(data);
-                
+
                 // Crear todos los gráficos
                 createAllCharts(data);
-                
+
             } catch (error) {
                 console.error('Error cargando datos:', error);
                 createAllCharts({}); // Crear gráficos vacíos
@@ -415,7 +414,7 @@
             const totalRevenue = salesData.reduce((sum, item) => sum + (item.total || 0), 0);
             const totalSales = salesData.length;
             const avgTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
-            
+
             document.getElementById('totalRevenue').textContent = `L. ${totalRevenue.toLocaleString('es-HN', {minimumFractionDigits: 2})}`;
             document.getElementById('totalSales').textContent = totalSales.toLocaleString();
             document.getElementById('avgTicket').textContent = `L. ${avgTicket.toLocaleString('es-HN', {minimumFractionDigits: 2})}`;
@@ -423,31 +422,43 @@
         }
 
         function createAllCharts(data) {
+            if (!data || typeof data !== 'object') {
+                data = {};
+            }
+
             createSalesTrendChart(data.daily_sales || []);
-            createPaymentMethodChart(data.payment_methods || []);
-            createWeekdayChart(data.weekday_sales || []);
             createTopProductsChart(data.top_products || []);
             createCategorySalesChart(data.category_sales || []);
+            createPaymentMethodChart(data.payment_methods || []);
+            createWeekdayChart(data.weekday_sales || []);
             createInventoryChart(data.inventory_status || []);
             createNewCustomersChart(data.new_customers || []);
             createCustomerLoyaltyChart(data.customer_loyalty || []);
         }
 
         function createSalesTrendChart(data) {
-            const ctx = document.getElementById('salesTrendChart').getContext('2d');
-            destroyChart('salesTrend');
-            
-            charts.salesTrend = new Chart(ctx, {
-                type: 'line',
+            const ctx = document.getElementById('salesTrendChart');
+            if (!ctx) return;
+
+            destroyExistingChart('salesTrendChart');
+
+            const chartType = document.getElementById('salesChartType').value;
+            const chartCtx = ctx.getContext('2d');
+
+            // Ensure data is an array
+            const safeData = Array.isArray(data) ? data : [];
+
+            charts.salesTrendChart = new Chart(chartCtx, {
+                type: chartType,
                 data: {
-                    labels: data.map(item => new Date(item.date).toLocaleDateString('es-HN')),
+                    labels: safeData.map(item => item?.date || 'Sin fecha'),
                     datasets: [{
-                        label: 'Ventas Diarias (L.)',
-                        data: data.map(item => item.total || 0),
-                        borderColor: colorSchemes.primary[0],
-                        backgroundColor: colorSchemes.gradient[0],
-                        fill: false,
-                        tension: 0.4
+                        label: 'Ventas (L.)',
+                        data: safeData.map(item => item?.total || 0),
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: chartType === 'area' ? 'rgba(75, 192, 192, 0.3)' : 'rgba(75, 192, 192, 0.8)',
+                        tension: 0.1,
+                        fill: chartType === 'area'
                     }]
                 },
                 options: {
@@ -455,17 +466,7 @@
                     maintainAspectRatio: false,
                     scales: {
                         y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return 'L. ' + value.toLocaleString();
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top'
+                            beginAtZero: true
                         }
                     }
                 }
@@ -475,14 +476,14 @@
         function createPaymentMethodChart(data) {
             const ctx = document.getElementById('paymentMethodChart').getContext('2d');
             destroyChart('paymentMethod');
-            
+
             // Datos simulados si no hay datos reales
             const paymentData = data.length > 0 ? data : [
                 {method: 'Efectivo', total: 15000},
                 {method: 'Tarjeta', total: 8500},
                 {method: 'Transferencia', total: 4200}
             ];
-            
+
             charts.paymentMethod = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -507,13 +508,13 @@
         function createWeekdayChart(data) {
             const ctx = document.getElementById('weekdayChart').getContext('2d');
             destroyChart('weekday');
-            
+
             const weekdays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
             const weekdayData = weekdays.map((day, index) => ({
                 day: day,
                 sales: Math.floor(Math.random() * 5000) + 2000 // Datos simulados
             }));
-            
+
             charts.weekday = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -539,7 +540,7 @@
         function createTopProductsChart(data) {
             const ctx = document.getElementById('topProductsChart').getContext('2d');
             destroyChart('topProducts');
-            
+
             const productData = data.length > 0 ? data : [
                 {name: 'Lavado Premium', quantity: 45},
                 {name: 'Lavado Básico', quantity: 38},
@@ -547,7 +548,7 @@
                 {name: 'Encerado', quantity: 25},
                 {name: 'Shampuseado', quantity: 18}
             ];
-            
+
             charts.topProducts = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -574,12 +575,12 @@
         function createCategorySalesChart(data) {
             const ctx = document.getElementById('categorySalesChart').getContext('2d');
             destroyChart('categorySales');
-            
+
             const categoryData = data.length > 0 ? data : [
                 {category: 'Servicios', total: 18500},
                 {category: 'Productos', total: 7200}
             ];
-            
+
             charts.categorySales = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -604,7 +605,7 @@
         function createInventoryChart(data) {
             const ctx = document.getElementById('inventoryChart').getContext('2d');
             destroyChart('inventory');
-            
+
             // Datos simulados de inventario
             const inventoryData = [
                 {product: 'Shampoo Auto', stock: 45, min_stock: 20},
@@ -612,7 +613,7 @@
                 {product: 'Toalla Microfibra', stock: 12, min_stock: 10},
                 {product: 'Cepillo Ruedas', stock: 35, min_stock: 25}
             ];
-            
+
             charts.inventory = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -642,7 +643,7 @@
         function createNewCustomersChart(data) {
             const ctx = document.getElementById('newCustomersChart').getContext('2d');
             destroyChart('newCustomers');
-            
+
             // Datos simulados de nuevos clientes
             const newCustomersData = [
                 {month: 'Ene', customers: 8},
@@ -652,7 +653,7 @@
                 {month: 'May', customers: 18},
                 {month: 'Jun', customers: 22}
             ];
-            
+
             charts.newCustomers = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -681,14 +682,14 @@
         function createCustomerLoyaltyChart(data) {
             const ctx = document.getElementById('customerLoyaltyChart').getContext('2d');
             destroyChart('customerLoyalty');
-            
+
             const loyaltyData = [
                 {segment: 'Nuevos (1 visita)', count: 25},
                 {segment: 'Ocasionales (2-5)', count: 18},
                 {segment: 'Regulares (6-15)', count: 12},
                 {segment: 'Fieles (16+)', count: 8}
             ];
-            
+
             charts.customerLoyalty = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -714,10 +715,10 @@
         function updateSalesChart() {
             const type = document.getElementById('salesChartType').value;
             destroyChart('salesTrend');
-            
+
             const ctx = document.getElementById('salesTrendChart').getContext('2d');
             const data = chartData.daily_sales || [];
-            
+
             let config = {
                 type: type === 'area' ? 'line' : type,
                 data: {
@@ -739,12 +740,12 @@
                     }
                 }
             };
-            
+
             if (type === 'area') {
                 config.data.datasets[0].fill = true;
                 config.data.datasets[0].tension = 0.4;
             }
-            
+
             charts.salesTrend = new Chart(ctx, config);
         }
 
@@ -760,13 +761,13 @@
             const type = document.getElementById('topProductsChartType').value;
             destroyChart('topProducts');
             createTopProductsChart(chartData.top_products || []);
-            
+
             if (type === 'horizontalBar') {
                 charts.topProducts.config.options.indexAxis = 'y';
             } else {
                 charts.topProducts.config.options.indexAxis = 'x';
             }
-            
+
             charts.topProducts.config.type = type === 'horizontalBar' ? 'bar' : type;
             charts.topProducts.update();
         }
@@ -795,12 +796,19 @@
                 ctx.textAlign = 'center';
                 ctx.fillText('Actualizando...', canvas.width / 2, canvas.height / 2);
             });
-            
+
             // Recargar datos
             setTimeout(() => {
                 loadDashboardData();
             }, 500);
         }
+
+        function destroyExistingChart(chartId) {
+        const chartInstance = Chart.getChart(chartId);
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+    }
     </script>
 </body>
 </html>

@@ -272,7 +272,7 @@ def dashboard():
                          total_products=total_products,
                          total_customers=total_customers, 
                          total_sales=total_sales,
-                         daily_revenue=f"L. {daily_revenue:,.2f}",
+                         daily_revenue=daily_revenue,
                          recent_sales=recent_sales)
 
 @app.route('/products')
