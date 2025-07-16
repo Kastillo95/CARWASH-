@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file, session, flash
 import sqlite3
 import json
@@ -7,6 +6,7 @@ import pandas as pd
 import os
 from io import BytesIO
 import hashlib
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'carwash_peña_blanca_secret_key'
@@ -18,7 +18,7 @@ ADMIN_PASSWORD_HASH = hashlib.sha256('742211010338'.encode()).hexdigest()
 def init_db():
     conn = sqlite3.connect('carwash.db')
     cursor = conn.cursor()
-    
+
     # Products table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS products (
@@ -33,7 +33,7 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
+
     # Customers table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS customers (
@@ -45,7 +45,7 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
+
     # Sales table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS sales (
@@ -61,7 +61,7 @@ def init_db():
             FOREIGN KEY (customer_id) REFERENCES customers (id)
         )
     ''')
-    
+
     # Sale items table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS sale_items (
@@ -75,7 +75,7 @@ def init_db():
             FOREIGN KEY (product_id) REFERENCES products (id)
         )
     ''')
-    
+
     # Promotions table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS promotions (
@@ -92,7 +92,7 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
+
     # Insert sample promotions
     cursor.execute("SELECT COUNT(*) FROM promotions")
     if cursor.fetchone()[0] == 0:
@@ -105,7 +105,7 @@ def init_db():
             "INSERT INTO promotions (name, description, discount_percentage, discount_amount, min_purchase, max_discount, start_date, end_date, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
             sample_promotions
         )
-    
+
     # Insert sample data
     cursor.execute("SELECT COUNT(*) FROM products")
     if cursor.fetchone()[0] == 0:
@@ -121,7 +121,7 @@ def init_db():
             ('Toalla Microfibra', 'Toalla de secado microfibra', 50.00, 25, 'Productos', '7501234567892', 'PROD3')
         ]
         cursor.executemany("INSERT INTO products (name, description, price, stock, category, barcode, service_code) VALUES (?, ?, ?, ?, ?, ?, ?)", sample_products)
-    
+
     conn.commit()
     conn.close()
 
@@ -137,7 +137,7 @@ def generate_invoice_number():
 def calculate_promotional_discount(subtotal):
     """Calcula el mejor descuento promocional aplicable"""
     conn = get_db_connection()
-    
+
     # Obtener promociones activas válidas para el subtotal
     promotions = conn.execute("""
         SELECT * FROM promotions 
@@ -146,12 +146,12 @@ def calculate_promotional_discount(subtotal):
         AND (end_date >= DATE('now') OR end_date IS NULL)
         ORDER BY discount_percentage DESC, discount_amount DESC
     """, (subtotal,)).fetchall()
-    
+
     conn.close()
-    
+
     best_discount = 0
     applied_promo = None
-    
+
     for promo in promotions:
         if promo['discount_percentage'] > 0:
             # Descuento porcentual
@@ -161,18 +161,30 @@ def calculate_promotional_discount(subtotal):
         else:
             # Descuento fijo
             discount = promo['discount_amount']
-        
+
         if discount > best_discount:
             best_discount = discount
             applied_promo = promo
-    
+
     return best_discount, applied_promo
+
+# Access control decorator
+def require_system_access():
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not session.get('admin_logged_in'):
+                flash('Acceso restringido. Inicie sesión como administrador.', 'warning')
+                return redirect(url_for('admin_login'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 # Routes
 @app.route('/')
 def dashboard():
     conn = get_db_connection()
-    
+
     # Get statistics
     total_products = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
     total_customers = conn.execute("SELECT COUNT(*) FROM customers").fetchone()[0]
@@ -180,7 +192,7 @@ def dashboard():
     daily_revenue = conn.execute(
         "SELECT COALESCE(SUM(total), 0) FROM sales WHERE DATE(created_at) = DATE('now')"
     ).fetchone()[0]
-    
+
     # Recent sales
     recent_sales = conn.execute("""
         SELECT s.id, s.invoice_number, c.name as customer_name, s.total, s.created_at
@@ -189,9 +201,9 @@ def dashboard():
         ORDER BY s.created_at DESC
         LIMIT 5
     """).fetchall()
-    
+
     conn.close()
-    
+
     return render_template('dashboard.html', 
                          total_products=total_products,
                          total_customers=total_customers, 
@@ -200,6 +212,7 @@ def dashboard():
                          recent_sales=recent_sales)
 
 @app.route('/products')
+@require_system_access()
 def products():
     conn = get_db_connection()
     products = conn.execute("SELECT * FROM products ORDER BY name").fetchall()
@@ -207,6 +220,7 @@ def products():
     return render_template('products.html', products=products)
 
 @app.route('/products/add', methods=['GET', 'POST'])
+@require_system_access()
 def add_product():
     if request.method == 'POST':
         name = request.form['name']
@@ -214,14 +228,14 @@ def add_product():
         price = float(request.form['price'])
         stock = int(request.form['stock'])
         category = request.form['category']
-        
+
         conn = get_db_connection()
-        
+
         # Verificar si el producto ya existe
         existing_product = conn.execute(
             "SELECT * FROM products WHERE LOWER(name) = LOWER(?)", (name,)
         ).fetchone()
-        
+
         if existing_product:
             # Si existe, solo actualizar la cantidad
             new_stock = existing_product['stock'] + stock
@@ -237,15 +251,16 @@ def add_product():
                 (name, description, price, stock, category)
             )
             flash('Producto agregado exitosamente', 'success')
-        
+
         conn.commit()
         conn.close()
-        
+
         return redirect(url_for('products'))
-    
+
     return render_template('add_product.html')
 
 @app.route('/customers')
+@require_system_access()
 def customers():
     conn = get_db_connection()
     customers = conn.execute("SELECT * FROM customers ORDER BY name").fetchall()
@@ -253,13 +268,14 @@ def customers():
     return render_template('customers.html', customers=customers)
 
 @app.route('/customers/add', methods=['GET', 'POST'])
+@require_system_access()
 def add_customer():
     if request.method == 'POST':
         name = request.form['name']
         phone = request.form['phone']
         email = request.form['email']
         address = request.form['address']
-        
+
         conn = get_db_connection()
         conn.execute(
             "INSERT INTO customers (name, phone, email, address) VALUES (?, ?, ?, ?)",
@@ -267,12 +283,13 @@ def add_customer():
         )
         conn.commit()
         conn.close()
-        
+
         return redirect(url_for('customers'))
-    
+
     return render_template('add_customer.html')
 
 @app.route('/sales')
+@require_system_access()
 def sales():
     conn = get_db_connection()
     sales = conn.execute("""
@@ -285,86 +302,90 @@ def sales():
     return render_template('sales.html', sales=sales)
 
 @app.route('/sales/new', methods=['GET', 'POST'])
+@require_system_access()
 def new_sale():
     if request.method == 'POST':
         customer_id = request.form.get('customer_id') or None
         payment_method = request.form['payment_method']
         items = json.loads(request.form['items'])
-        
+
         conn = get_db_connection()
-        
+
         # Calculate totals
         subtotal = sum(float(item['subtotal']) for item in items)
-        
+
         # Calcular descuento promocional
         promotional_discount, applied_promo = calculate_promotional_discount(subtotal)
-        
+
         total = subtotal - promotional_discount
         invoice_number = generate_invoice_number()
-        
+
         # Insert sale
         cursor = conn.execute(
             "INSERT INTO sales (customer_id, total, discount, payment_method, invoice_number) VALUES (?, ?, ?, ?, ?)",
             (customer_id, total, promotional_discount, payment_method, invoice_number)
         )
         sale_id = cursor.lastrowid
-        
+
         # Insert sale items and update stock
         for item in items:
             conn.execute(
                 "INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)",
                 (sale_id, item['product_id'], item['quantity'], item['unit_price'], item['subtotal'])
             )
-            
+
             # Update product stock
             conn.execute(
                 "UPDATE products SET stock = stock - ? WHERE id = ?",
                 (item['quantity'], item['product_id'])
             )
-        
+
         conn.commit()
         conn.close()
-        
+
         return redirect(url_for('view_invoice', sale_id=sale_id))
-    
+
     # GET request
     conn = get_db_connection()
     products = conn.execute("SELECT * FROM products WHERE stock > 0 ORDER BY name").fetchall()
     customers = conn.execute("SELECT * FROM customers ORDER BY name").fetchall()
     conn.close()
-    
+
     return render_template('new_sale.html', products=products, customers=customers)
 
 @app.route('/sales/<int:sale_id>/invoice')
+@require_system_access()
 def view_invoice(sale_id):
     conn = get_db_connection()
-    
+
     sale = conn.execute("""
         SELECT s.*, c.name as customer_name, c.phone, c.email, c.address
         FROM sales s
         LEFT JOIN customers c ON s.customer_id = c.id
         WHERE s.id = ?
     """, (sale_id,)).fetchone()
-    
+
     items = conn.execute("""
         SELECT si.*, p.name as product_name
         FROM sale_items si
         JOIN products p ON si.product_id = p.id
         WHERE si.sale_id = ?
     """, (sale_id,)).fetchall()
-    
+
     conn.close()
-    
+
     return render_template('invoice.html', sale=sale, items=items)
 
 @app.route('/reports')
+@require_system_access()
 def reports():
     return render_template('reports.html')
 
 @app.route('/reports/sales_excel')
+@require_system_access()
 def export_sales_excel():
     conn = get_db_connection()
-    
+
     sales_data = conn.execute("""
         SELECT 
             s.invoice_number as 'Número Factura',
@@ -376,20 +397,20 @@ def export_sales_excel():
         LEFT JOIN customers c ON s.customer_id = c.id
         ORDER BY s.created_at DESC
     """).fetchall()
-    
+
     conn.close()
-    
+
     # Convert to DataFrame
     columns = ['Número Factura', 'Cliente', 'Total', 'Método Pago', 'Fecha']
     df = pd.DataFrame(sales_data, columns=columns)
-    
+
     # Create Excel file in memory
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Ventas', index=False)
-    
+
     output.seek(0)
-    
+
     return send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -398,9 +419,10 @@ def export_sales_excel():
     )
 
 @app.route('/reports/inventory_excel')
+@require_system_access()
 def export_inventory_excel():
     conn = get_db_connection()
-    
+
     inventory_data = conn.execute("""
         SELECT 
             name as 'Producto',
@@ -411,19 +433,19 @@ def export_inventory_excel():
         FROM products
         ORDER BY category, name
     """).fetchall()
-    
+
     conn.close()
-    
+
     # Convert to DataFrame
     df = pd.DataFrame(inventory_data, columns=['Producto', 'Descripción', 'Precio', 'Stock', 'Categoría'])
-    
+
     # Create Excel file in memory
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Inventario', index=False)
-    
+
     output.seek(0)
-    
+
     return send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -441,7 +463,7 @@ def admin_login():
             return redirect(url_for('products'))
         else:
             flash('Contraseña incorrecta', 'error')
-    
+
     return render_template('admin_login.html')
 
 @app.route('/admin/logout')
@@ -451,19 +473,20 @@ def admin_logout():
     return redirect(url_for('products'))
 
 @app.route('/products/<int:product_id>/edit', methods=['POST'])
+@require_system_access()
 def edit_product(product_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-    
+
     conn = get_db_connection()
-    
+
     price = float(request.form['price'])
     stock = int(request.form.get('stock', 0))
-    
+
     conn.execute("UPDATE products SET price = ?, stock = ? WHERE id = ?", (price, stock, product_id))
     conn.commit()
     conn.close()
-    
+
     flash('Producto actualizado correctamente', 'success')
     return redirect(url_for('products'))
 
@@ -472,18 +495,18 @@ def search_product():
     query = request.args.get('q', '').strip()
     if not query:
         return jsonify({'success': False, 'message': 'No se proporcionó búsqueda'})
-    
+
     conn = get_db_connection()
-    
+
     # Buscar por código de barras, código de servicio o nombre
     product = conn.execute("""
         SELECT * FROM products 
         WHERE barcode = ? OR service_code = ? OR name LIKE ?
         LIMIT 1
     """, (query, query, f'%{query}%')).fetchone()
-    
+
     conn.close()
-    
+
     if product:
         return jsonify({
             'success': True,
@@ -500,51 +523,53 @@ def search_product():
         return jsonify({'success': False, 'message': 'Producto no encontrado'})
 
 @app.route('/sync_inventory', methods=['GET', 'POST'])
+@require_system_access()
 def sync_inventory():
     if request.method == 'POST':
         password = request.form['password']
         if hashlib.sha256(password.encode()).hexdigest() != ADMIN_PASSWORD_HASH:
             flash('Contraseña incorrecta', 'error')
             return redirect(url_for('sync_inventory'))
-        
+
         if 'excel_file' not in request.files:
             flash('No se seleccionó archivo', 'error')
             return redirect(url_for('sync_inventory'))
-        
+
         file = request.files['excel_file']
         if file.filename == '':
             flash('No se seleccionó archivo', 'error')
             return redirect(url_for('sync_inventory'))
-        
+
         if file and file.filename.endswith('.xlsx'):
             try:
                 # Leer el archivo Excel
                 df = pd.read_excel(file)
-                
+
                 conn = get_db_connection()
                 # Limpiar tabla de productos
                 conn.execute("DELETE FROM products")
-                
+
                 # Insertar productos del Excel
                 for _, row in df.iterrows():
                     conn.execute("""
                         INSERT INTO products (name, description, price, stock, category)
                         VALUES (?, ?, ?, ?, ?)
                     """, (row['Producto'], row['Descripción'], row['Precio'], row['Stock'], row['Categoría']))
-                
+
                 conn.commit()
                 conn.close()
-                
+
                 flash('Inventario sincronizado exitosamente', 'success')
                 return redirect(url_for('products'))
             except Exception as e:
                 flash(f'Error al procesar archivo: {str(e)}', 'error')
         else:
             flash('Solo archivos .xlsx son permitidos', 'error')
-    
+
     return render_template('sync_inventory.html')
 
 @app.route('/promotions')
+@require_system_access()
 def promotions():
     conn = get_db_connection()
     promotions = conn.execute("SELECT * FROM promotions ORDER BY is_active DESC, created_at DESC").fetchall()
@@ -552,10 +577,11 @@ def promotions():
     return render_template('promotions.html', promotions=promotions)
 
 @app.route('/promotions/add', methods=['GET', 'POST'])
+@require_system_access()
 def add_promotion():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-        
+
     if request.method == 'POST':
         name = request.form['name']
         description = request.form['description']
@@ -565,10 +591,10 @@ def add_promotion():
         max_discount = float(request.form.get('max_discount', 0))
         start_date = request.form['start_date']
         end_date = request.form['end_date']
-        
+
         discount_percentage = discount_value if discount_type == 'percentage' else 0
         discount_amount = discount_value if discount_type == 'fixed' else 0
-        
+
         conn = get_db_connection()
         conn.execute("""
             INSERT INTO promotions (name, description, discount_percentage, discount_amount, 
@@ -577,29 +603,30 @@ def add_promotion():
         """, (name, description, discount_percentage, discount_amount, min_purchase, max_discount, start_date, end_date))
         conn.commit()
         conn.close()
-        
+
         flash('Promoción agregada exitosamente', 'success')
         return redirect(url_for('promotions'))
-    
+
     return render_template('add_promotion.html')
 
 @app.route('/promotions/<int:promo_id>/toggle')
+@require_system_access()
 def toggle_promotion(promo_id):
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
-        
+
     conn = get_db_connection()
     conn.execute("UPDATE promotions SET is_active = NOT is_active WHERE id = ?", (promo_id,))
     conn.commit()
     conn.close()
-    
+
     return redirect(url_for('promotions'))
 
 @app.route('/api/check_promotion')
 def check_promotion():
     total = float(request.args.get('total', 0))
     discount, promo = calculate_promotional_discount(total)
-    
+
     if promo:
         return jsonify({
             'has_promotion': True,
@@ -613,7 +640,7 @@ def check_promotion():
 @app.route('/api/dashboard_data')
 def dashboard_data():
     conn = get_db_connection()
-    
+
     # Ventas por día (últimos 7 días)
     daily_sales = conn.execute("""
         SELECT DATE(created_at) as date, SUM(total) as total
@@ -622,7 +649,7 @@ def dashboard_data():
         GROUP BY DATE(created_at)
         ORDER BY date
     """).fetchall()
-    
+
     # Productos más vendidos
     top_products = conn.execute("""
         SELECT p.name, SUM(si.quantity) as quantity_sold
@@ -634,7 +661,7 @@ def dashboard_data():
         ORDER BY quantity_sold DESC
         LIMIT 5
     """).fetchall()
-    
+
     # Ventas por categoría
     category_sales = conn.execute("""
         SELECT p.category, SUM(si.subtotal) as total
@@ -644,9 +671,9 @@ def dashboard_data():
         WHERE s.created_at >= DATE('now', '-30 days')
         GROUP BY p.category
     """).fetchall()
-    
+
     conn.close()
-    
+
     return jsonify({
         'daily_sales': [{'date': row['date'], 'total': row['total']} for row in daily_sales],
         'top_products': [{'name': row['name'], 'quantity': row['quantity_sold']} for row in top_products],
@@ -657,6 +684,6 @@ if __name__ == '__main__':
     # Create templates directory if it doesn't exist
     os.makedirs('templates', exist_ok=True)
     os.makedirs('static/css', exist_ok=True)
-    
+
     init_db()
     app.run(host='0.0.0.0', port=5000, debug=True)

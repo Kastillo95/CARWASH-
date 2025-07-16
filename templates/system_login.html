@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Seguro - Carwash Peña Blanca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3a5f 0%, #c8102e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .logo {
+            color: #1e3a5f;
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        
+        .title {
+            color: #1e3a5f;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+        
+        .security-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 25px;
+            color: #856404;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            padding: 12px 15px;
+            font-size: 16px;
+        }
+        
+        .form-control:focus {
+            border-color: #1e3a5f;
+            box-shadow: 0 0 0 0.2rem rgba(30, 58, 95, 0.25);
+        }
+        
+        .btn-login {
+            background: linear-gradient(45deg, #1e3a5f, #c8102e);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-weight: bold;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <i class="fas fa-shield-alt logo"></i>
+        <h2 class="title">SISTEMA PRIVADO</h2>
+        <h4 class="mb-4">Carwash Peña Blanca</h4>
+        
+        <div class="security-notice">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Acceso Restringido:</strong> Este sistema es privado y está protegido. Solo personal autorizado puede acceder.
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST">
+            <div class="mb-3">
+                <label for="password" class="form-label text-start d-block">
+                    <i class="fas fa-key me-2"></i>Contraseña de Acceso
+                </label>
+                <input type="password" class="form-control" id="password" name="password" required 
+                       placeholder="Ingrese su contraseña">
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-login">
+                <i class="fas fa-unlock me-2"></i>ACCEDER AL SISTEMA
+            </button>
+        </form>
+        
+        <div class="mt-4 text-muted">
+            <small>
+                <i class="fas fa-lock me-1"></i>
+                Conexión segura y protegida
+            </small>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
