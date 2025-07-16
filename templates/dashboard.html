@@ -11,15 +11,21 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-car me-2"></i>Carwash Peña Blanca
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="/static/IMG-20250624-WA0043_1752632246954.jpg" alt="Carwash Peña Blanca" height="40" class="me-2">
+                <span><i class="fas fa-car me-2"></i>Carwash Peña Blanca</span>
             </a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="/products"><i class="fas fa-box me-1"></i>Inventario</a>
-                <a class="nav-link" href="/customers"><i class="fas fa-users me-1"></i>Clientes</a>
-                <a class="nav-link" href="/sales"><i class="fas fa-shopping-cart me-1"></i>Ventas</a>
-                <a class="nav-link" href="/sales/new"><i class="fas fa-plus me-1"></i>Nueva Venta</a>
-                <a class="nav-link" href="/reports"><i class="fas fa-chart-bar me-1"></i>Reportes</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="/products"><i class="fas fa-box me-1"></i>Inventario</a>
+                    <a class="nav-link" href="/customers"><i class="fas fa-users me-1"></i>Clientes</a>
+                    <a class="nav-link" href="/sales"><i class="fas fa-shopping-cart me-1"></i>Ventas</a>
+                    <a class="nav-link" href="/sales/new"><i class="fas fa-plus me-1"></i>Nueva Venta</a>
+                    <a class="nav-link" href="/reports"><i class="fas fa-chart-bar me-1"></i>Reportes</a>
+                </div>
             </div>
         </div>
     </nav>

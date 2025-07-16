@@ -1,35 +1,4 @@
-
-<old_str>{% extends "base.html" %}
-
-{% block title %}Sincronizar Inventario - Carwash Peña Blanca{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <h1 class="mb-4">Sincronizar Inventario desde Excel</h1>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-sync me-2"></i>Subir Archivo Excel
-                </h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label for="excel_file" class="form-label">Archivo Excel del Inventario</label>
-                        <input type="file" class="form-control" id="excel_file" name="excel_file" accept=".xlsx" required>
-                        <div class="form-text">Solo archivos .xlsx son permitidos</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Contraseña de Administrador</label>
-                        <input type="password" class="form-control" id="password" name="password" require</old_str>
-<new_str>{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Sincronizar Inventario - Carwash Peña Blanca{% endblock %}
 
@@ -59,20 +28,20 @@
                         {% endfor %}
                     {% endif %}
                 {% endwith %}
-                
+
                 <form method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="excel_file" class="form-label">Archivo Excel del Inventario</label>
                         <input type="file" class="form-control" id="excel_file" name="excel_file" accept=".xlsx" required>
                         <div class="form-text">Solo archivos .xlsx son permitidos</div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="password" class="form-label">Contraseña de Administrador</label>
                         <input type="password" class="form-control" id="password" name="password" required>
                         <div class="form-text">Contraseña de administrador: 742211010338</div>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-success">
                         <i class="fas fa-sync me-2"></i>Sincronizar Inventario
                     </button>
@@ -83,7 +52,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4">
         <div class="card">
             <div class="card-header">
@@ -99,7 +68,7 @@
                     <li>Guarda el archivo</li>
                     <li>Súbelo aquí para sincronizar con el sistema</li>
                 </ol>
-                
+
                 <div class="alert alert-warning mt-3">
                     <strong>¡Atención!</strong> La sincronización reemplazará todo el inventario actual.
                 </div>
@@ -107,4 +76,4 @@
         </div>
     </div>
 </div>
-{% endblock %}</new_str>
+{% endblock %}
