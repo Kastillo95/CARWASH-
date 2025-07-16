@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Dashboard - Carwash Peña Blanca{% endblock %}
@@ -6,128 +5,61 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <div class="d-flex align-items-center mb-4">
-            <img src="{{ url_for('static', filename='IMG-20250624-WA0043_1752632246954.jpg') }}" 
-                 alt="Carwash Peña Blanca Logo" 
-                 style="width: 80px; height: 80px; object-fit: contain; margin-right: 20px;">
-            <h1 class="mb-0">Dashboard</h1>
-        </div>
-    </div>
-</div>
-
-<!-- Promociones Editables -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card border-warning">
-            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-star"></i> Promociones Especiales</h5>
-                <button class="btn btn-sm btn-outline-dark" onclick="editPromotions()">
-                    <i class="fas fa-edit"></i> Editar
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="d-flex align-items-center">
+                <img src="{{ url_for('static', filename='IMG-20250624-WA0043_1752632246954.jpg') }}" 
+                     alt="Carwash Peña Blanca Logo" 
+                     style="width: 80px; height: 80px; object-fit: contain; margin-right: 20px;">
+                <h1 class="mb-0">Dashboard</h1>
+            </div>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-warning text-dark me-2">
+                    <i class="fas fa-star me-1"></i>
+                    <span id="promo-text">¡Lavado Premium + Encerado por L. 320!</span>
+                </span>
+                <button class="btn btn-sm btn-outline-warning" onclick="editPromotions()" title="Editar Promociones">
+                    <i class="fas fa-edit"></i>
                 </button>
             </div>
-            <div class="card-body">
-                <div id="promotions-display">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="promotion-item">
-                                <h6 id="promo1-title">¡Lavado Premium + Encerado!</h6>
-                                <p id="promo1-desc">Solo por hoy: L. 320 (antes L. 350)</p>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="promotion-item">
-                                <h6 id="promo2-title">Combo Familiar</h6>
-                                <p id="promo2-desc">2 lavados básicos por L. 250</p>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="promotion-item">
-                                <h6 id="promo3-title">Descuento Estudiantes</h6>
-                                <p id="promo3-desc">15% off en todos los servicios</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="promotions-edit" style="display: none;">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Promoción 1 - Título</label>
-                                <input type="text" class="form-control" id="edit-promo1-title">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Descripción</label>
-                                <textarea class="form-control" id="edit-promo1-desc" rows="2"></textarea>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Promoción 2 - Título</label>
-                                <input type="text" class="form-control" id="edit-promo2-title">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Descripción</label>
-                                <textarea class="form-control" id="edit-promo2-desc" rows="2"></textarea>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Promoción 3 - Título</label>
-                                <input type="text" class="form-control" id="edit-promo3-title">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Descripción</label>
-                                <textarea class="form-control" id="edit-promo3-desc" rows="2"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        <button class="btn btn-success" onclick="savePromotions()">
-                            <i class="fas fa-save"></i> Guardar
-                        </button>
-                        <button class="btn btn-secondary" onclick="cancelEditPromotions()">
-                            <i class="fas fa-times"></i> Cancelar
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
 
-<!-- Gráficas y Reportes -->
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-chart-line me-2"></i>Ventas de los Últimos 7 Días</h5>
+<!-- Modal para editar promociones -->
+<div class="modal fade" id="promoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-star me-2"></i>Editar Promociones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="card-body">
-                <canvas id="salesChart" width="400" height="200"></canvas>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Promoción Principal (se muestra en el header)</label>
+                    <input type="text" class="form-control" id="edit-main-promo" placeholder="Ej: ¡Lavado Premium + Encerado por L. 320!">
+                </div>
+                <hr>
+                <h6>Promociones Adicionales</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Promoción 2</label>
+                            <input type="text" class="form-control" id="edit-promo2" placeholder="Ej: Combo Familiar 2x1">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Promoción 3</label>
+                            <input type="text" class="form-control" id="edit-promo3" placeholder="Ej: Descuento estudiantes 15%">
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-chart-pie me-2"></i>Ventas por Categoría</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="categoryChart" width="200" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-trophy me-2"></i>Productos/Servicios Más Vendidos</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="topProductsChart" width="400" height="300"></canvas>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="savePromotions()">
+                    <i class="fas fa-save me-1"></i>Guardar
+                </button>
             </div>
         </div>
     </div>
@@ -261,44 +193,44 @@
     </div>
 </div>
 
-<!-- Reportes Compactos -->
+<!-- Gráficas y Reportes al final -->
 <div class="row mt-5">
     <div class="col-12">
-        <h4 class="mb-3">Reportes Rápidos</h4>
+        <h4 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Reportes y Análisis</h4>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card" style="height: 300px;">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">Ventas por Período</h6>
-                <select class="form-select form-select-sm" style="width: 120px;" id="sales-period" onchange="updateSalesChart()">
-                    <option value="day">Día</option>
-                    <option value="week" selected>Semana</option>
-                    <option value="month">Mes</option>
-                    <option value="year">Año</option>
-                </select>
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Ventas de los Últimos 7 Días</h5>
             </div>
             <div class="card-body">
                 <canvas id="salesChart" width="400" height="200"></canvas>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-6">
-        <div class="card" style="height: 300px;">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">Productos Más Vendidos</h6>
-                <select class="form-select form-select-sm" style="width: 120px;" id="products-period" onchange="updateProductsChart()">
-                    <option value="day">Día</option>
-                    <option value="week">Semana</option>
-                    <option value="month" selected>Mes</option>
-                    <option value="year">Año</option>
-                </select>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie me-2"></i>Ventas por Categoría</h5>
             </div>
             <div class="card-body">
-                <canvas id="productsChart" width="400" height="200"></canvas>
+                <canvas id="categoryChart" width="200" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-trophy me-2"></i>Productos/Servicios Más Vendidos</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="topProductsChart" width="400" height="300"></canvas>
             </div>
         </div>
     </div>
@@ -398,40 +330,42 @@ fetch('/api/dashboard_data')
 // Funciones para editar promociones
 function editPromotions() {
     // Cargar valores actuales
-    document.getElementById('edit-promo1-title').value = document.getElementById('promo1-title').textContent;
-    document.getElementById('edit-promo1-desc').value = document.getElementById('promo1-desc').textContent;
-    document.getElementById('edit-promo2-title').value = document.getElementById('promo2-title').textContent;
-    document.getElementById('edit-promo2-desc').value = document.getElementById('promo2-desc').textContent;
-    document.getElementById('edit-promo3-title').value = document.getElementById('promo3-title').textContent;
-    document.getElementById('edit-promo3-desc').value = document.getElementById('promo3-desc').textContent;
+    const savedPromotions = localStorage.getItem('promotions');
+    if (savedPromotions) {
+        const promos = JSON.parse(savedPromotions);
+        document.getElementById('edit-main-promo').value = promos.main || '¡Lavado Premium + Encerado por L. 320!';
+        document.getElementById('edit-promo2').value = promos.promo2 || 'Combo Familiar 2x1';
+        document.getElementById('edit-promo3').value = promos.promo3 || 'Descuento estudiantes 15%';
+    } else {
+        document.getElementById('edit-main-promo').value = '¡Lavado Premium + Encerado por L. 320!';
+        document.getElementById('edit-promo2').value = 'Combo Familiar 2x1';
+        document.getElementById('edit-promo3').value = 'Descuento estudiantes 15%';
+    }
     
-    document.getElementById('promotions-display').style.display = 'none';
-    document.getElementById('promotions-edit').style.display = 'block';
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('promoModal'));
+    modal.show();
 }
 
 function savePromotions() {
-    // Actualizar valores mostrados
-    document.getElementById('promo1-title').textContent = document.getElementById('edit-promo1-title').value;
-    document.getElementById('promo1-desc').textContent = document.getElementById('edit-promo1-desc').value;
-    document.getElementById('promo2-title').textContent = document.getElementById('edit-promo2-title').value;
-    document.getElementById('promo2-desc').textContent = document.getElementById('edit-promo2-desc').value;
-    document.getElementById('promo3-title').textContent = document.getElementById('edit-promo3-title').value;
-    document.getElementById('promo3-desc').textContent = document.getElementById('edit-promo3-desc').value;
+    // Obtener valores
+    const mainPromo = document.getElementById('edit-main-promo').value;
+    const promo2 = document.getElementById('edit-promo2').value;
+    const promo3 = document.getElementById('edit-promo3').value;
+    
+    // Actualizar texto principal
+    document.getElementById('promo-text').textContent = mainPromo;
     
     // Guardar en localStorage
     localStorage.setItem('promotions', JSON.stringify({
-        promo1: {title: document.getElementById('edit-promo1-title').value, desc: document.getElementById('edit-promo1-desc').value},
-        promo2: {title: document.getElementById('edit-promo2-title').value, desc: document.getElementById('edit-promo2-desc').value},
-        promo3: {title: document.getElementById('edit-promo3-title').value, desc: document.getElementById('edit-promo3-desc').value}
+        main: mainPromo,
+        promo2: promo2,
+        promo3: promo3
     }));
     
-    document.getElementById('promotions-display').style.display = 'block';
-    document.getElementById('promotions-edit').style.display = 'none';
-}
-
-function cancelEditPromotions() {
-    document.getElementById('promotions-display').style.display = 'block';
-    document.getElementById('promotions-edit').style.display = 'none';
+    // Cerrar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('promoModal'));
+    modal.hide();
 }
 
 // Cargar promociones guardadas al cargar la página
@@ -439,12 +373,9 @@ window.addEventListener('load', function() {
     const savedPromotions = localStorage.getItem('promotions');
     if (savedPromotions) {
         const promos = JSON.parse(savedPromotions);
-        document.getElementById('promo1-title').textContent = promos.promo1.title;
-        document.getElementById('promo1-desc').textContent = promos.promo1.desc;
-        document.getElementById('promo2-title').textContent = promos.promo2.title;
-        document.getElementById('promo2-desc').textContent = promos.promo2.desc;
-        document.getElementById('promo3-title').textContent = promos.promo3.title;
-        document.getElementById('promo3-desc').textContent = promos.promo3.desc;
+        if (promos.main) {
+            document.getElementById('promo-text').textContent = promos.main;
+        }
     }
 });
 

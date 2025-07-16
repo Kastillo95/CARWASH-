@@ -418,6 +418,51 @@ def search_product():
     else:
         return jsonify({'success': False, 'message': 'Producto no encontrado'})
 
+@app.route('/sync_inventory', methods=['GET', 'POST'])
+def sync_inventory():
+    if request.method == 'POST':
+        password = request.form['password']
+        if hashlib.sha256(password.encode()).hexdigest() != ADMIN_PASSWORD_HASH:
+            flash('Contraseña incorrecta', 'error')
+            return redirect(url_for('sync_inventory'))
+        
+        if 'excel_file' not in request.files:
+            flash('No se seleccionó archivo', 'error')
+            return redirect(url_for('sync_inventory'))
+        
+        file = request.files['excel_file']
+        if file.filename == '':
+            flash('No se seleccionó archivo', 'error')
+            return redirect(url_for('sync_inventory'))
+        
+        if file and file.filename.endswith('.xlsx'):
+            try:
+                # Leer el archivo Excel
+                df = pd.read_excel(file)
+                
+                conn = get_db_connection()
+                # Limpiar tabla de productos
+                conn.execute("DELETE FROM products")
+                
+                # Insertar productos del Excel
+                for _, row in df.iterrows():
+                    conn.execute("""
+                        INSERT INTO products (name, description, price, stock, category)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (row['Producto'], row['Descripción'], row['Precio'], row['Stock'], row['Categoría']))
+                
+                conn.commit()
+                conn.close()
+                
+                flash('Inventario sincronizado exitosamente', 'success')
+                return redirect(url_for('products'))
+            except Exception as e:
+                flash(f'Error al procesar archivo: {str(e)}', 'error')
+        else:
+            flash('Solo archivos .xlsx son permitidos', 'error')
+    
+    return render_template('sync_inventory.html')
+
 @app.route('/api/dashboard_data')
 def dashboard_data():
     conn = get_db_connection()
