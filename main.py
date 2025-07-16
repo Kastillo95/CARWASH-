@@ -320,9 +320,7 @@ def export_inventory_excel():
             description as 'Descripción',
             price as 'Precio',
             stock as 'Stock',
-            category as 'Categoría',
-            barcode as 'Código de Barras',
-            service_code as 'Código de Servicio'
+            category as 'Categoría'
         FROM products
         ORDER BY category, name
     """).fetchall()
@@ -330,7 +328,7 @@ def export_inventory_excel():
     conn.close()
     
     # Convert to DataFrame
-    df = pd.DataFrame(inventory_data, columns=['Producto', 'Descripción', 'Precio', 'Stock', 'Categoría', 'Código de Barras', 'Código de Servicio'])
+    df = pd.DataFrame(inventory_data, columns=['Producto', 'Descripción', 'Precio', 'Stock', 'Categoría'])
     
     # Create Excel file in memory
     output = BytesIO()
