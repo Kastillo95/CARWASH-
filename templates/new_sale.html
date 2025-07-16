@@ -18,19 +18,28 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label for="product_select" class="form-label">Seleccionar Producto/Servicio</label>
-                        
-                        <div class="mb-2">
-                            <input type="text" class="form-control" id="product-search" 
-                                   placeholder="Buscar producto o escanear código..." 
-                                   onkeyup="searchProduct(this.value)" 
-                                   onkeydown="handleEnter(event)">
+                        <label for="barcode_input" class="form-label">Escanear o Buscar Producto</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="barcode_input" 
+                                   placeholder="Escanee código o escriba nombre del producto...">
+                            <button class="btn btn-outline-secondary" type="button" onclick="searchProduct()">
+                                <i class="fas fa-search"></i>
+                            </button>
                         </div>
+                        <small class="text-muted">Puede usar escáner o escribir manualmente</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="product_select" class="form-label">O Seleccionar de la Lista</label>
                         <select class="form-control" id="product_select">
                             <option value="">-- Seleccionar --</option>
                             {% for product in products %}
                             <option value="{{ product.id }}" data-name="{{ product.name }}" data-price="{{ product.price }}" data-stock="{{ product.stock }}">
-                                {{ product.name }} - ${{ "{:,.0f}".format(product.price) }} (Stock: {{ product.stock }})
+                                {% if product.service_code %}
+                                    {{ product.service_code }} - {{ product.name }} - L. {{ "{:,.0f}".format(product.price) }}
+                                {% else %}
+                                    {{ product.name }} - L. {{ "{:,.0f}".format(product.price) }} (Stock: {{ product.stock }})
+                                {% endif %}
                             </option>
                             {% endfor %}
                         </select>
@@ -191,6 +200,45 @@ function updateTotal() {
     const submitBtn = document.getElementById('submit_btn');
     submitBtn.disabled = saleItems.length === 0;
 }
+
+function searchProduct() {
+    const query = document.getElementById('barcode_input').value.trim();
+    if (!query) return;
+
+    fetch(`/api/search_product?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                addItemToSale(data.product.id, data.product.name, data.product.price, data.product.stock);
+                document.getElementById('barcode_input').value = '';
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al buscar el producto');
+        });
+}
+
+// Auto-search when Enter is pressed or after barcode scan
+document.getElementById('barcode_input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        searchProduct();
+    }
+});
+
+// Auto-search after a short delay (for barcode scanners)
+let searchTimeout;
+document.getElementById('barcode_input').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        if (this.value.length >= 3) { // Minimum 3 characters
+            searchProduct();
+        }
+    }, 500);
+});
 
 document.getElementById('saleForm').addEventListener('submit', function(e) {
     if (saleItems.length === 0) {

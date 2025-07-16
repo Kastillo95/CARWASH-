@@ -15,6 +15,43 @@
     </div>
 </div>
 
+<!-- Gráficas y Reportes -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Ventas de los Últimos 7 Días</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie me-2"></i>Ventas por Categoría</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart" width="200" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-trophy me-2"></i>Productos/Servicios Más Vendidos</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="topProductsChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row mb-4">
     <div class="col-md-3 mb-3">
         <div class="card bg-primary text-white">
@@ -140,6 +177,98 @@
         <a href="{{ url_for('add_product') }}" class="btn btn-primary btn-lg w-100">
             <i class="fas fa-box me-2"></i>Nuevo Producto
         </a>
+
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Cargar datos del dashboard
+fetch('/api/dashboard_data')
+    .then(response => response.json())
+    .then(data => {
+        // Gráfico de ventas diarias
+        const salesCtx = document.getElementById('salesChart').getContext('2d');
+        new Chart(salesCtx, {
+            type: 'line',
+            data: {
+                labels: data.daily_sales.map(item => item.date),
+                datasets: [{
+                    label: 'Ventas (L.)',
+                    data: data.daily_sales.map(item => item.total),
+                    borderColor: '#1e3a5f',
+                    backgroundColor: 'rgba(30, 58, 95, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'L. ' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gráfico de categorías
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: data.category_sales.map(item => item.category),
+                datasets: [{
+                    data: data.category_sales.map(item => item.total),
+                    backgroundColor: ['#1e3a5f', '#c8102e', '#17a2b8', '#ffc107', '#28a745']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Gráfico de productos más vendidos
+        const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+        new Chart(topProductsCtx, {
+            type: 'bar',
+            data: {
+                labels: data.top_products.map(item => item.name),
+                datasets: [{
+                    label: 'Cantidad Vendida',
+                    data: data.top_products.map(item => item.quantity),
+                    backgroundColor: '#c8102e',
+                    borderColor: '#1e3a5f',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Error cargando datos del dashboard:', error);
+    });
+</script>
+{% endblock
+
     </div>
 </div>
 {% endblock %}
