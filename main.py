@@ -677,45 +677,124 @@ def check_promotion():
 
 @app.route('/api/dashboard_data')
 def dashboard_data():
+    period = int(request.args.get('period', 30))
+    category = request.args.get('category', 'all')
+    
     conn = get_db_connection()
 
-    # Ventas por día (últimos 7 días)
-    daily_sales = conn.execute("""
-        SELECT DATE(created_at) as date, SUM(total) as total
-        FROM sales 
-        WHERE created_at >= DATE('now', '-7 days')
-        GROUP BY DATE(created_at)
+    # Construir filtros dinámicos
+    category_filter = "" if category == 'all' else f"AND p.category = '{category}'"
+    
+    # Ventas por día
+    daily_sales = conn.execute(f"""
+        SELECT DATE(s.created_at) as date, SUM(s.total) as total, COUNT(*) as count
+        FROM sales s
+        LEFT JOIN sale_items si ON s.id = si.sale_id
+        LEFT JOIN products p ON si.product_id = p.id
+        WHERE s.created_at >= DATE('now', '-{period} days') {category_filter}
+        GROUP BY DATE(s.created_at)
         ORDER BY date
     """).fetchall()
 
     # Productos más vendidos
-    top_products = conn.execute("""
-        SELECT p.name, SUM(si.quantity) as quantity_sold
+    top_products = conn.execute(f"""
+        SELECT p.name, SUM(si.quantity) as quantity_sold, SUM(si.subtotal) as revenue
         FROM sale_items si
         JOIN products p ON si.product_id = p.id
         JOIN sales s ON si.sale_id = s.id
-        WHERE s.created_at >= DATE('now', '-30 days')
+        WHERE s.created_at >= DATE('now', '-{period} days') {category_filter}
         GROUP BY p.name
         ORDER BY quantity_sold DESC
-        LIMIT 5
+        LIMIT 10
     """).fetchall()
 
     # Ventas por categoría
-    category_sales = conn.execute("""
-        SELECT p.category, SUM(si.subtotal) as total
+    category_sales = conn.execute(f"""
+        SELECT p.category, SUM(si.subtotal) as total, COUNT(DISTINCT s.id) as sales_count
         FROM sale_items si
         JOIN products p ON si.product_id = p.id
         JOIN sales s ON si.sale_id = s.id
-        WHERE s.created_at >= DATE('now', '-30 days')
+        WHERE s.created_at >= DATE('now', '-{period} days')
         GROUP BY p.category
     """).fetchall()
+
+    # Métodos de pago
+    payment_methods = conn.execute(f"""
+        SELECT s.payment_method as method, SUM(s.total) as total, COUNT(*) as count
+        FROM sales s
+        WHERE s.created_at >= DATE('now', '-{period} days')
+        GROUP BY s.payment_method
+    """).fetchall()
+
+    # Ventas por día de la semana
+    weekday_sales = conn.execute(f"""
+        SELECT 
+            CASE CAST(strftime('%w', s.created_at) AS INTEGER)
+                WHEN 0 THEN 'Domingo'
+                WHEN 1 THEN 'Lunes'
+                WHEN 2 THEN 'Martes'
+                WHEN 3 THEN 'Miércoles'
+                WHEN 4 THEN 'Jueves'
+                WHEN 5 THEN 'Viernes'
+                WHEN 6 THEN 'Sábado'
+            END as weekday,
+            SUM(s.total) as total,
+            COUNT(*) as sales_count
+        FROM sales s
+        WHERE s.created_at >= DATE('now', '-{period} days')
+        GROUP BY strftime('%w', s.created_at)
+        ORDER BY CAST(strftime('%w', s.created_at) AS INTEGER)
+    """).fetchall()
+
+    # Estado del inventario
+    inventory_status = conn.execute("""
+        SELECT name, stock, price, category,
+               CASE 
+                   WHEN stock < 10 THEN 'Bajo'
+                   WHEN stock < 25 THEN 'Medio'
+                   ELSE 'Alto'
+               END as stock_level
+        FROM products
+        WHERE category = 'Productos'
+        ORDER BY stock ASC
+    """).fetchall()
+
+    # Nuevos clientes por mes
+    new_customers = conn.execute("""
+        SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count
+        FROM customers
+        WHERE created_at >= DATE('now', '-12 months')
+        GROUP BY strftime('%Y-%m', created_at)
+        ORDER BY month
+    """).fetchall()
+
+    # Análisis de fidelidad de clientes (simulado)
+    customer_loyalty = conn.execute("""
+        SELECT 
+            c.name,
+            COUNT(s.id) as total_visits,
+            SUM(s.total) as total_spent,
+            MAX(s.created_at) as last_visit
+        FROM customers c
+        LEFT JOIN sales s ON c.id = s.customer_id
+        WHERE s.created_at >= DATE('now', '-{period} days')
+        GROUP BY c.id, c.name
+        HAVING COUNT(s.id) > 0
+        ORDER BY total_visits DESC
+        LIMIT 20
+    """.format(period=period)).fetchall()
 
     conn.close()
 
     return jsonify({
-        'daily_sales': [{'date': row['date'], 'total': row['total']} for row in daily_sales],
-        'top_products': [{'name': row['name'], 'quantity': row['quantity_sold']} for row in top_products],
-        'category_sales': [{'category': row['category'], 'total': row['total']} for row in category_sales]
+        'daily_sales': [{'date': row['date'], 'total': row['total'], 'count': row['count']} for row in daily_sales],
+        'top_products': [{'name': row['name'], 'quantity': row['quantity_sold'], 'revenue': row['revenue']} for row in top_products],
+        'category_sales': [{'category': row['category'], 'total': row['total'], 'sales_count': row['sales_count']} for row in category_sales],
+        'payment_methods': [{'method': row['method'], 'total': row['total'], 'count': row['count']} for row in payment_methods],
+        'weekday_sales': [{'weekday': row['weekday'], 'total': row['total'], 'sales_count': row['sales_count']} for row in weekday_sales],
+        'inventory_status': [{'name': row['name'], 'stock': row['stock'], 'price': row['price'], 'category': row['category'], 'stock_level': row['stock_level']} for row in inventory_status],
+        'new_customers': [{'month': row['month'], 'count': row['count']} for row in new_customers],
+        'customer_loyalty': [{'name': row['name'], 'total_visits': row['total_visits'], 'total_spent': row['total_spent'], 'last_visit': row['last_visit']} for row in customer_loyalty]
     })
 
 if __name__ == '__main__':
