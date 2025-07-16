@@ -1,0 +1,132 @@
+
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Carwash Peña Blanca{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Dashboard</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title">Productos</h5>
+                        <h3>{{ total_products }}</h3>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-box fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title">Clientes</h5>
+                        <h3>{{ total_customers }}</h3>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title">Ventas</h5>
+                        <h3>{{ total_sales }}</h3>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-shopping-cart fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title">Ingresos Hoy</h5>
+                        <h3>${{ "{:,.0f}".format(daily_revenue) }}</h3>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-dollar-sign fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Ventas Recientes</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_sales %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Factura</th>
+                                <th>Cliente</th>
+                                <th>Total</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td>{{ sale.invoice_number }}</td>
+                                <td>{{ sale.customer_name or 'Cliente General' }}</td>
+                                <td>${{ "{:,.0f}".format(sale.total) }}</td>
+                                <td>{{ sale.created_at[:16] }}</td>
+                                <td>
+                                    <a href="{{ url_for('view_invoice', sale_id=sale.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No hay ventas registradas.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <a href="{{ url_for('new_sale') }}" class="btn btn-success btn-lg w-100">
+            <i class="fas fa-plus me-2"></i>Nueva Venta
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a href="{{ url_for('add_product') }}" class="btn btn-primary btn-lg w-100">
+            <i class="fas fa-box me-2"></i>Nuevo Producto
+        </a>
+    </div>
+</div>
+{% endblock %}

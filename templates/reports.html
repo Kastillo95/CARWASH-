@@ -1,0 +1,57 @@
+
+{% extends "base.html" %}
+
+{% block title %}Reportes - Carwash Peña Blanca{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Reportes</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Reporte de Ventas
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Exportar todas las ventas realizadas en formato Excel para análisis detallado.</p>
+                <a href="{{ url_for('export_sales_excel') }}" class="btn btn-success">
+                    <i class="fas fa-file-excel me-2"></i>Descargar Excel
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-boxes me-2"></i>Reporte de Inventario
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Exportar el estado actual del inventario con precios y stock disponible.</p>
+                <a href="{{ url_for('export_inventory_excel') }}" class="btn btn-success">
+                    <i class="fas fa-file-excel me-2"></i>Descargar Excel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <h5 class="alert-heading">
+                <i class="fas fa-info-circle me-2"></i>Información sobre Reportes
+            </h5>
+            <p class="mb-0">Los reportes se generan en tiempo real y incluyen toda la información actualizada del sistema. Los archivos Excel pueden ser abiertos en Microsoft Excel, Google Sheets o cualquier programa compatible.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

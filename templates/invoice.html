@@ -1,0 +1,123 @@
+
+{% extends "base.html" %}
+
+{% block title %}Factura {{ sale.invoice_number }} - Carwash Peña Blanca{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Factura {{ sale.invoice_number }}</h1>
+            <div>
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="fas fa-print me-2"></i>Imprimir
+                </button>
+                <a href="{{ url_for('sales') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="invoice">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <!-- Header -->
+                <div class="row mb-4">
+                    <div class="col-6">
+                        <h2 class="text-primary">Carwash Peña Blanca</h2>
+                        <p class="mb-0">Sistema de Gestión</p>
+                        <p class="mb-0">Teléfono: +57 XXX XXX XXXX</p>
+                    </div>
+                    <div class="col-6 text-end">
+                        <h4>FACTURA</h4>
+                        <p class="mb-0"><strong>No. {{ sale.invoice_number }}</strong></p>
+                        <p class="mb-0">Fecha: {{ sale.created_at[:10] }}</p>
+                    </div>
+                </div>
+                
+                <!-- Customer Info -->
+                <div class="row mb-4">
+                    <div class="col-6">
+                        <h5>Información del Cliente:</h5>
+                        <p class="mb-0"><strong>{{ sale.customer_name or 'Cliente General' }}</strong></p>
+                        {% if sale.phone %}
+                        <p class="mb-0">Tel: {{ sale.phone }}</p>
+                        {% endif %}
+                        {% if sale.email %}
+                        <p class="mb-0">Email: {{ sale.email }}</p>
+                        {% endif %}
+                        {% if sale.address %}
+                        <p class="mb-0">{{ sale.address }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Items -->
+                <div class="table-responsive mb-4">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Producto/Servicio</th>
+                                <th class="text-center">Cantidad</th>
+                                <th class="text-end">Precio Unit.</th>
+                                <th class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>{{ item.product_name }}</td>
+                                <td class="text-center">{{ item.quantity }}</td>
+                                <td class="text-end">${{ "{:,.0f}".format(item.unit_price) }}</td>
+                                <td class="text-end">${{ "{:,.0f}".format(item.subtotal) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Totals -->
+                <div class="row">
+                    <div class="col-6"></div>
+                    <div class="col-6">
+                        <table class="table">
+                            <tr>
+                                <td><strong>TOTAL:</strong></td>
+                                <td class="text-end"><strong>${{ "{:,.0f}".format(sale.total) }}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="row mt-4">
+                    <div class="col-12 text-center">
+                        <p class="text-muted">¡Gracias por su preferencia!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .navbar, .card {
+        display: none !important;
+    }
+    
+    #invoice .card {
+        display: block !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    body {
+        background: white !important;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,68 @@
+
+{% extends "base.html" %}
+
+{% block title %}Inventario - Carwash Peña Blanca{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Inventario</h1>
+            <a href="{{ url_for('add_product') }}" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Agregar Producto
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if products %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Precio</th>
+                                <th>Stock</th>
+                                <th>Categoría</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.description }}</td>
+                                <td>${{ "{:,.0f}".format(product.price) }}</td>
+                                <td>
+                                    <span class="badge {% if product.stock > 10 %}bg-success{% elif product.stock > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {{ product.stock }}
+                                    </span>
+                                </td>
+                                <td>{{ product.category }}</td>
+                                <td>
+                                    {% if product.stock > 10 %}
+                                        <span class="badge bg-success">Disponible</span>
+                                    {% elif product.stock > 0 %}
+                                        <span class="badge bg-warning">Poco Stock</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Agotado</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No hay productos registrados.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

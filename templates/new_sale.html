@@ -1,0 +1,196 @@
+
+{% extends "base.html" %}
+
+{% block title %}Nueva Venta - Carwash Peña Blanca{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Nueva Venta</h1>
+    </div>
+</div>
+
+<form method="POST" id="saleForm">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Productos/Servicios</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="product_select" class="form-label">Seleccionar Producto/Servicio</label>
+                        <select class="form-control" id="product_select">
+                            <option value="">-- Seleccionar --</option>
+                            {% for product in products %}
+                            <option value="{{ product.id }}" data-name="{{ product.name }}" data-price="{{ product.price }}" data-stock="{{ product.stock }}">
+                                {{ product.name }} - ${{ "{:,.0f}".format(product.price) }} (Stock: {{ product.stock }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table" id="sale_items">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unit.</th>
+                                    <th>Subtotal</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Información de Venta</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="customer_id" class="form-label">Cliente (Opcional)</label>
+                        <select class="form-control" id="customer_id" name="customer_id">
+                            <option value="">Cliente General</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.id }}">{{ customer.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="payment_method" class="form-label">Método de Pago *</label>
+                        <select class="form-control" id="payment_method" name="payment_method" required>
+                            <option value="">Seleccionar</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Tarjeta">Tarjeta</option>
+                            <option value="Transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <strong>Total: $<span id="total_amount">0</span></strong>
+                    </div>
+                    
+                    <input type="hidden" name="items" id="items_input">
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success" id="submit_btn" disabled>
+                            <i class="fas fa-shopping-cart me-2"></i>Procesar Venta
+                        </button>
+                        <a href="{{ url_for('sales') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let saleItems = [];
+let totalAmount = 0;
+
+document.getElementById('product_select').addEventListener('change', function() {
+    const select = this;
+    if (select.value) {
+        const option = select.options[select.selectedIndex];
+        const productId = parseInt(select.value);
+        const productName = option.dataset.name;
+        const productPrice = parseFloat(option.dataset.price);
+        const productStock = parseInt(option.dataset.stock);
+        
+        // Check if product already exists
+        const existingItem = saleItems.find(item => item.product_id === productId);
+        if (existingItem) {
+            if (existingItem.quantity < productStock) {
+                existingItem.quantity++;
+                existingItem.subtotal = existingItem.quantity * existingItem.unit_price;
+            } else {
+                alert('No hay suficiente stock disponible');
+                return;
+            }
+        } else {
+            saleItems.push({
+                product_id: productId,
+                product_name: productName,
+                quantity: 1,
+                unit_price: productPrice,
+                subtotal: productPrice
+            });
+        }
+        
+        select.value = '';
+        updateSaleTable();
+        updateTotal();
+    }
+});
+
+function updateSaleTable() {
+    const tbody = document.querySelector('#sale_items tbody');
+    tbody.innerHTML = '';
+    
+    saleItems.forEach((item, index) => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td>${item.product_name}</td>
+            <td>
+                <input type="number" class="form-control" value="${item.quantity}" min="1" 
+                       onchange="updateQuantity(${index}, this.value)">
+            </td>
+            <td>$${item.unit_price.toLocaleString()}</td>
+            <td>$${item.subtotal.toLocaleString()}</td>
+            <td>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeItem(${index})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+    });
+}
+
+function updateQuantity(index, newQuantity) {
+    const quantity = parseInt(newQuantity);
+    if (quantity > 0) {
+        saleItems[index].quantity = quantity;
+        saleItems[index].subtotal = quantity * saleItems[index].unit_price;
+        updateSaleTable();
+        updateTotal();
+    }
+}
+
+function removeItem(index) {
+    saleItems.splice(index, 1);
+    updateSaleTable();
+    updateTotal();
+}
+
+function updateTotal() {
+    totalAmount = saleItems.reduce((sum, item) => sum + item.subtotal, 0);
+    document.getElementById('total_amount').textContent = totalAmount.toLocaleString();
+    document.getElementById('items_input').value = JSON.stringify(saleItems);
+    
+    const submitBtn = document.getElementById('submit_btn');
+    submitBtn.disabled = saleItems.length === 0;
+}
+
+document.getElementById('saleForm').addEventListener('submit', function(e) {
+    if (saleItems.length === 0) {
+        e.preventDefault();
+        alert('Debe agregar al menos un producto o servicio');
+    }
+});
+</script>
+{% endblock %}
