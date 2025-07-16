@@ -1,0 +1,81 @@
+
+{% extends "base.html" %}
+
+{% block title %}Sincronizar Inventario - Carwash Peña Blanca{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Sincronizar Inventario desde Excel</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-sync me-2"></i>Subir Archivo Excel
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="excel_file" class="form-label">Archivo Excel del Inventario</label>
+                        <input type="file" class="form-control" id="excel_file" name="excel_file" accept=".xlsx" required>
+                        <div class="form-text">Solo archivos .xlsx son permitidos</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Contraseña de Administrador</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <div class="form-text">Contraseña por defecto: admin123</div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-sync me-2"></i>Sincronizar Inventario
+                    </button>
+                    <a href="{{ url_for('products') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Cancelar
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Instrucciones
+                </h5>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>Descarga el archivo Excel protegido desde <a href="{{ url_for('export_inventory_excel') }}">aquí</a></li>
+                    <li>Edita el archivo con la contraseña de administrador</li>
+                    <li>Modifica precios, stock y productos según necesites</li>
+                    <li>Guarda el archivo</li>
+                    <li>Súbelo aquí para sincronizar con el sistema</li>
+                </ol>
+                
+                <div class="alert alert-warning mt-3">
+                    <strong>¡Atención!</strong> La sincronización reemplazará todo el inventario actual.
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Códigos de Servicios:</h6>
+                    <ul class="list-unstyled">
+                        <li><code>CWP1</code> - Lavado Básico</li>
+                        <li><code>CWP2</code> - Lavado Premium</li>
+                        <li><code>CWP3</code> - Otros Lavados</li>
+                        <li><code>CWP4</code> - Encerado</li>
+                        <li><code>CWP5</code> - Shampoo</li>
+                        <li><code>CWP6</code> - Pulida de Rin</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

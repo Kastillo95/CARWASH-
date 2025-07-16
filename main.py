@@ -1,14 +1,21 @@
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file, flash
 import sqlite3
 import json
 from datetime import datetime
 import pandas as pd
 import os
 from io import BytesIO
+from openpyxl import load_workbook, Workbook
+from openpyxl.protection import SheetProtection
 
 app = Flask(__name__)
 app.secret_key = 'carwash_peña_blanca_secret_key'
+
+# Add flash messages context processor
+@app.context_processor
+def utility_processor():
+    return dict(get_flashed_messages=flash)
 
 # Initialize database
 def init_db():
@@ -94,6 +101,108 @@ def get_db_connection():
 
 def generate_invoice_number():
     return f"CWP-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+def create_protected_excel_inventory():
+    """Create a protected Excel file with current inventory"""
+    conn = get_db_connection()
+    products = conn.execute("SELECT * FROM products ORDER BY category, name").fetchall()
+    conn.close()
+    
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Inventario"
+    
+    # Headers
+    headers = ['ID', 'Código', 'Nombre', 'Descripción', 'Precio', 'Stock', 'Categoría']
+    for col, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col, value=header)
+    
+    # Data
+    for row, product in enumerate(products, 2):
+        # Generate service codes
+        code = generate_product_code(product['name'], product['category'])
+        ws.cell(row=row, column=1, value=product['id'])
+        ws.cell(row=row, column=2, value=code)
+        ws.cell(row=row, column=3, value=product['name'])
+        ws.cell(row=row, column=4, value=product['description'])
+        ws.cell(row=row, column=5, value=product['price'])
+        ws.cell(row=row, column=6, value=product['stock'])
+        ws.cell(row=row, column=7, value=product['category'])
+    
+    # Protect sheet with password
+    ws.protection = SheetProtection(password="admin123", sheet=True)
+    
+    # Save file
+    excel_path = "inventario_protegido.xlsx"
+    wb.save(excel_path)
+    return excel_path
+
+def generate_product_code(name, category):
+    """Generate product/service codes"""
+    if category == 'Servicios':
+        name_lower = name.lower()
+        if 'lavado' in name_lower:
+            if 'básico' in name_lower or 'basico' in name_lower:
+                return 'CWP1'
+            elif 'premium' in name_lower or 'completo' in name_lower:
+                return 'CWP2'
+            else:
+                return 'CWP3'
+        elif 'encerado' in name_lower or 'cera' in name_lower:
+            return 'CWP4'
+        elif 'shampoo' in name_lower or 'shampu' in name_lower:
+            return 'CWP5'
+        elif 'pulida' in name_lower or 'rin' in name_lower:
+            return 'CWP6'
+        else:
+            return 'CWP7'
+    else:
+        # For products, use first 3 letters + number
+        return f"PROD{name[:3].upper()}"
+
+def sync_inventory_from_excel(excel_path, password):
+    """Sync inventory from Excel file"""
+    try:
+        # Load workbook
+        wb = load_workbook(excel_path)
+        ws = wb.active
+        
+        # Check if sheet is protected
+        if ws.protection.sheet:
+            # Try to unprotect with password
+            try:
+                ws.protection.password = password
+            except:
+                return False, "Contraseña incorrecta"
+        
+        conn = get_db_connection()
+        
+        # Clear existing products
+        conn.execute("DELETE FROM products")
+        
+        # Read data from Excel (skip header row)
+        for row in range(2, ws.max_row + 1):
+            product_id = ws.cell(row=row, column=1).value
+            code = ws.cell(row=row, column=2).value
+            name = ws.cell(row=row, column=3).value
+            description = ws.cell(row=row, column=4).value
+            price = ws.cell(row=row, column=5).value
+            stock = ws.cell(row=row, column=6).value
+            category = ws.cell(row=row, column=7).value
+            
+            if name and price:  # Basic validation
+                conn.execute(
+                    "INSERT INTO products (name, description, price, stock, category) VALUES (?, ?, ?, ?, ?)",
+                    (name, description or '', price, stock or 0, category or 'Productos')
+                )
+        
+        conn.commit()
+        conn.close()
+        return True, "Inventario sincronizado exitosamente"
+        
+    except Exception as e:
+        return False, f"Error al sincronizar: {str(e)}"
 
 # Routes
 @app.route('/')
@@ -303,37 +412,86 @@ def export_sales_excel():
 
 @app.route('/reports/inventory_excel')
 def export_inventory_excel():
-    conn = get_db_connection()
-    
-    inventory_data = conn.execute("""
-        SELECT 
-            name as 'Producto',
-            description as 'Descripción',
-            price as 'Precio',
-            stock as 'Stock',
-            category as 'Categoría'
-        FROM products
-        ORDER BY category, name
-    """).fetchall()
-    
-    conn.close()
-    
-    # Convert to DataFrame
-    df = pd.DataFrame(inventory_data, columns=['Producto', 'Descripción', 'Precio', 'Stock', 'Categoría'])
-    
-    # Create Excel file in memory
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name='Inventario', index=False)
-    
-    output.seek(0)
+    """Export protected Excel inventory file"""
+    excel_path = create_protected_excel_inventory()
     
     return send_file(
-        output,
+        excel_path,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True,
-        download_name=f'inventario_carwash_{datetime.now().strftime("%Y%m%d")}.xlsx'
+        download_name=f'inventario_protegido_{datetime.now().strftime("%Y%m%d")}.xlsx'
     )
+
+@app.route('/inventory/sync', methods=['GET', 'POST'])
+def sync_inventory():
+    """Sync inventory from uploaded Excel file"""
+    if request.method == 'POST':
+        password = request.form.get('password')
+        
+        if not password:
+            flash('Debes ingresar la contraseña', 'error')
+            return redirect(url_for('sync_inventory'))
+        
+        # Check if file was uploaded
+        if 'excel_file' not in request.files:
+            flash('No se seleccionó ningún archivo', 'error')
+            return redirect(url_for('sync_inventory'))
+        
+        file = request.files['excel_file']
+        if file.filename == '':
+            flash('No se seleccionó ningún archivo', 'error')
+            return redirect(url_for('sync_inventory'))
+        
+        if file and file.filename.endswith('.xlsx'):
+            # Save uploaded file temporarily
+            temp_path = f"temp_inventory_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+            file.save(temp_path)
+            
+            # Sync inventory
+            success, message = sync_inventory_from_excel(temp_path, password)
+            
+            # Remove temporary file
+            os.remove(temp_path)
+            
+            if success:
+                flash(message, 'success')
+                return redirect(url_for('products'))
+            else:
+                flash(message, 'error')
+        else:
+            flash('Solo se permiten archivos .xlsx', 'error')
+    
+    return render_template('sync_inventory.html')
+
+@app.route('/api/search_product')
+def search_product():
+    """Search product by name or barcode for POS"""
+    query = request.args.get('q', '')
+    
+    conn = get_db_connection()
+    products = conn.execute("""
+        SELECT id, name, description, price, stock, category 
+        FROM products 
+        WHERE name LIKE ? OR description LIKE ?
+        ORDER BY name
+        LIMIT 10
+    """, (f'%{query}%', f'%{query}%')).fetchall()
+    conn.close()
+    
+    results = []
+    for product in products:
+        code = generate_product_code(product['name'], product['category'])
+        results.append({
+            'id': product['id'],
+            'name': product['name'],
+            'description': product['description'],
+            'price': product['price'],
+            'stock': product['stock'],
+            'category': product['category'],
+            'code': code
+        })
+    
+    return jsonify(results)
 
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist
