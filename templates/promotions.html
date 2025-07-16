@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}Promociones - Carwash Peña Blanca{% endblock %}
@@ -7,13 +8,9 @@
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>Promociones</h1>
-            <div>
-                {% if session.admin_logged_in %}
-                    <a href="{{ url_for('add_promotion') }}" class="btn btn-success">
-                        <i class="fas fa-plus me-2"></i>Nueva Promoción
-                    </a>
-                {% endif %}
-            </div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPromotionModal">
+                <i class="fas fa-plus me-2"></i>Nueva Promoción
+            </button>
         </div>
     </div>
 </div>
@@ -22,7 +19,6 @@
     <div class="col-12">
         <div class="card">
             <div class="card-body">
-                {% if promotions %}
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -30,58 +26,121 @@
                                 <th>Nombre</th>
                                 <th>Descripción</th>
                                 <th>Descuento</th>
-                                <th>Compra Mínima</th>
-                                <th>Vigencia</th>
+                                <th>Fecha Inicio</th>
+                                <th>Fecha Fin</th>
                                 <th>Estado</th>
-                                {% if session.admin_logged_in %}
                                 <th>Acciones</th>
-                                {% endif %}
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for promo in promotions %}
+                        <tbody id="promotionsTable">
+                            {% for promotion in promotions %}
                             <tr>
-                                <td>{{ promo.name }}</td>
-                                <td>{{ promo.description }}</td>
+                                <td>{{ promotion.name }}</td>
+                                <td>{{ promotion.description }}</td>
                                 <td>
-                                    {% if promo.discount_percentage > 0 %}
-                                        {{ promo.discount_percentage }}%
-                                        {% if promo.max_discount > 0 %}
-                                            (máx. L. {{ "{:,.2f}".format(promo.max_discount) }})
-                                        {% endif %}
+                                    {% if promotion.discount_type == 'percentage' %}
+                                        {{ promotion.discount_value }}%
                                     {% else %}
-                                        L. {{ "{:,.2f}".format(promo.discount_amount) }}
+                                        L. {{ promotion.discount_value }}
                                     {% endif %}
                                 </td>
-                                <td>L. {{ "{:,.2f}".format(promo.min_purchase) }}</td>
-                                <td>{{ promo.start_date }} - {{ promo.end_date }}</td>
+                                <td>{{ promotion.start_date }}</td>
+                                <td>{{ promotion.end_date }}</td>
                                 <td>
-                                    {% if promo.is_active %}
+                                    {% if promotion.active %}
                                         <span class="badge bg-success">Activa</span>
                                     {% else %}
                                         <span class="badge bg-secondary">Inactiva</span>
                                     {% endif %}
                                 </td>
-                                {% if session.admin_logged_in %}
                                 <td>
-                                    <a href="{{ url_for('toggle_promotion', promo_id=promo.id) }}" 
-                                       class="btn btn-sm btn-outline-warning">
-                                        <i class="fas fa-toggle-{% if promo.is_active %}on{% else %}off{% endif %}"></i>
-                                    </a>
-                                    <button class="btn btn-sm btn-outline-primary" onclick="editPromotion('{{promo.id}}', '{{promo.name}}', '{{promo.description}}', '{{promo.discount_percentage}}', '{{promo.discount_amount}}', '{{promo.min_purchase}}', '{{promo.max_discount}}', '{{promo.start_date}}', '{{promo.end_date}}', '{{promo.promo_type}}', '{{promo.required_visits}}', '{{promo.free_product}}')">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editPromotion({{ promotion.id }})">
                                         <i class="fas fa-edit"></i>
                                     </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deletePromotion({{ promotion.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </td>
-                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-                {% else %}
-                <p class="text-muted">No hay promociones registradas.</p>
-                {% endif %}
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Promotion Modal -->
+<div class="modal fade" id="addPromotionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva Promoción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="promotionForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="promotion_name" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="promotion_name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="promotion_description" class="form-label">Descripción *</label>
+                        <textarea class="form-control" id="promotion_description" name="description" rows="3" required
+                                  placeholder="Ej: 5 lavadas al mes, una gratis | Por tu lavada premium obtén un desodorante de pinito"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="discount_type" class="form-label">Tipo de Descuento *</label>
+                                <select class="form-control" id="discount_type" name="discount_type" required>
+                                    <option value="">Seleccionar</option>
+                                    <option value="percentage">Porcentaje (%)</option>
+                                    <option value="fixed">Monto Fijo (L.)</option>
+                                    <option value="free_item">Producto/Servicio Gratis</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="discount_value" class="form-label">Valor del Descuento *</label>
+                                <input type="number" class="form-control" id="discount_value" name="discount_value" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="start_date" class="form-label">Fecha Inicio *</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="end_date" class="form-label">Fecha Fin *</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="promotion_active" name="active" checked>
+                            <label class="form-check-label" for="promotion_active">
+                                Promoción Activa
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Promoción</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -94,100 +153,65 @@
                 <h5 class="modal-title">Editar Promoción</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="/promotions/edit">
+            <form id="editPromotionForm">
+                <input type="hidden" id="edit_promotion_id" name="promotion_id">
                 <div class="modal-body">
-                    <input type="hidden" id="edit_promo_id" name="promo_id">
-
+                    <div class="mb-3">
+                        <label for="edit_promotion_name" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="edit_promotion_name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_promotion_description" class="form-label">Descripción *</label>
+                        <textarea class="form-control" id="edit_promotion_description" name="description" rows="3" required></textarea>
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Nombre</label>
-                                <input type="text" class="form-control" id="edit_name" name="name" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Tipo de Promoción</label>
-                                <select class="form-control" id="edit_promo_type" name="promo_type" onchange="toggleEditPromoFields()">
-                                    <option value="discount">Descuento</option>
-                                    <option value="loyalty">Programa de Lealtad</option>
+                                <label for="edit_discount_type" class="form-label">Tipo de Descuento *</label>
+                                <select class="form-control" id="edit_discount_type" name="discount_type" required>
+                                    <option value="percentage">Porcentaje (%)</option>
+                                    <option value="fixed">Monto Fijo (L.)</option>
+                                    <option value="free_item">Producto/Servicio Gratis</option>
                                 </select>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Descripción</label>
-                        <textarea class="form-control" id="edit_description" name="description" rows="2"></textarea>
-                    </div>
-
-                    <div id="edit_discount_fields">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Tipo de Descuento</label>
-                                    <select class="form-control" id="edit_discount_type" name="discount_type">
-                                        <option value="percentage">Porcentaje</option>
-                                        <option value="fixed">Monto Fijo</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Valor del Descuento</label>
-                                    <input type="number" class="form-control" id="edit_discount_value" name="discount_value" step="0.01" min="0">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Descuento Máximo (L.)</label>
-                                    <input type="number" class="form-control" id="edit_max_discount" name="max_discount" step="0.01" min="0">
-                                </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_discount_value" class="form-label">Valor del Descuento *</label>
+                                <input type="number" class="form-control" id="edit_discount_value" name="discount_value" step="0.01" required>
                             </div>
                         </div>
                     </div>
-
-                    <div id="edit_loyalty_fields" style="display: none;">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Visitas Requeridas</label>
-                                    <input type="number" class="form-control" id="edit_required_visits" name="required_visits" min="1">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Producto/Servicio Gratis</label>
-                                    <input type="text" class="form-control" id="edit_free_product" name="free_product_name" placeholder="Ej: Lavado básico, Desodorante">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+                    
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Compra Mínima (L.)</label>
-                                <input type="number" class="form-control" id="edit_min_purchase" name="min_purchase" step="0.01" min="0">
+                                <label for="edit_start_date" class="form-label">Fecha Inicio *</label>
+                                <input type="date" class="form-control" id="edit_start_date" name="start_date" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Fecha Inicio</label>
-                                <input type="date" class="form-control" id="edit_start_date" name="start_date">
+                                <label for="edit_end_date" class="form-label">Fecha Fin *</label>
+                                <input type="date" class="form-control" id="edit_end_date" name="end_date" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Fecha Fin</label>
-                                <input type="date" class="form-control" id="edit_end_date" name="end_date">
-                            </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_promotion_active" name="active">
+                            <label class="form-check-label" for="edit_promotion_active">
+                                Promoción Activa
+                            </label>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    <button type="submit" class="btn btn-primary">Actualizar Promoción</button>
                 </div>
             </form>
         </div>
@@ -195,44 +219,113 @@
 </div>
 
 <script>
-function editPromotion(id, name, description, discountPercentage, discountAmount, minPurchase, maxDiscount, startDate, endDate, promoType, requiredVisits, freeProduct) {
-    document.getElementById('edit_promo_id').value = id;
-    document.getElementById('edit_name').value = name;
-    document.getElementById('edit_description').value = description;
-    document.getElementById('edit_min_purchase').value = minPurchase;
-    document.getElementById('edit_max_discount').value = maxDiscount;
-    document.getElementById('edit_start_date').value = startDate;
-    document.getElementById('edit_end_date').value = endDate;
-    document.getElementById('edit_promo_type').value = promoType || 'discount';
-    document.getElementById('edit_required_visits').value = requiredVisits || '';
-    document.getElementById('edit_free_product').value = freeProduct || '';
+document.getElementById('promotionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {};
+    formData.forEach((value, key) => {
+        if (key === 'active') {
+            data[key] = document.getElementById('promotion_active').checked;
+        } else {
+            data[key] = value;
+        }
+    });
 
-    if (discountPercentage > 0) {
-        document.getElementById('edit_discount_type').value = 'percentage';
-        document.getElementById('edit_discount_value').value = discountPercentage;
-    } else {
-        document.getElementById('edit_discount_type').value = 'fixed';
-        document.getElementById('edit_discount_value').value = discountAmount;
-    }
+    fetch('/api/add_promotion', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Error al agregar promoción: ' + result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al agregar promoción');
+    });
+});
 
-    toggleEditPromoFields();
+document.getElementById('editPromotionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {};
+    formData.forEach((value, key) => {
+        if (key === 'active') {
+            data[key] = document.getElementById('edit_promotion_active').checked;
+        } else {
+            data[key] = value;
+        }
+    });
 
-    new bootstrap.Modal(document.getElementById('editPromotionModal')).show();
+    fetch('/api/edit_promotion', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Error al actualizar promoción: ' + result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al actualizar promoción');
+    });
+});
+
+function editPromotion(id) {
+    fetch(`/api/get_promotion/${id}`)
+        .then(response => response.json())
+        .then(promotion => {
+            document.getElementById('edit_promotion_id').value = promotion.id;
+            document.getElementById('edit_promotion_name').value = promotion.name;
+            document.getElementById('edit_promotion_description').value = promotion.description;
+            document.getElementById('edit_discount_type').value = promotion.discount_type;
+            document.getElementById('edit_discount_value').value = promotion.discount_value;
+            document.getElementById('edit_start_date').value = promotion.start_date;
+            document.getElementById('edit_end_date').value = promotion.end_date;
+            document.getElementById('edit_promotion_active').checked = promotion.active;
+            
+            new bootstrap.Modal(document.getElementById('editPromotionModal')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cargar promoción');
+        });
 }
 
-function toggleEditPromoFields() {
-    const promoType = document.getElementById('edit_promo_type').value;
-    const discountFields = document.getElementById('edit_discount_fields');
-    const loyaltyFields = document.getElementById('edit_loyalty_fields');
-
-    if (promoType === 'loyalty') {
-        discountFields.style.display = 'none';
-        loyaltyFields.style.display = 'block';
-    } else {
-        discountFields.style.display = 'block';
-        loyaltyFields.style.display = 'none';
+function deletePromotion(id) {
+    if (confirm('¿Está seguro de eliminar esta promoción?')) {
+        fetch(`/api/delete_promotion/${id}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Error al eliminar promoción');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar promoción');
+        });
     }
 }
 </script>
-
 {% endblock %}

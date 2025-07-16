@@ -404,12 +404,12 @@ def new_sale():
         # Insert sale items and update stock
         for item in items:
             product_id = item['product_id']
-            
+
             # Handle manual products
             if str(product_id).startswith('manual_'):
                 # Create temporary product entry or use NULL
                 product_id = None
-            
+
             conn.execute(
                 "INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)",
                 (sale_id, product_id, item['quantity'], item['unit_price'], item['subtotal'])
@@ -833,7 +833,7 @@ def dashboard_data():
         FROM sales s
         WHERE s.created_at >= DATE('now', '-{period} days')
         GROUP BY strftime('%w', s.created_at)
-        ORDER BY CAST(strftime('%w', s.created_at) AS INTEGER)
+        ORDER BY CAST(strftime('%w', s.created_at) AS INTEGER)```python
     """).fetchall()
 
     # Estado del inventario
