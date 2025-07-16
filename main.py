@@ -12,7 +12,7 @@ app = Flask(__name__)
 app.secret_key = 'carwash_peña_blanca_secret_key'
 
 # Admin password (hashed)
-ADMIN_PASSWORD_HASH = hashlib.sha256('admin123'.encode()).hexdigest()
+ADMIN_PASSWORD_HASH = hashlib.sha256('742211010338'.encode()).hexdigest()
 
 # Initialize database
 def init_db():
