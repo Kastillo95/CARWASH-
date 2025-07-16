@@ -1,263 +1,370 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Carwash Peña Blanca</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="/">
-                <img src="/static/IMG-20250624-WA0043_1752632246954.jpg" alt="Carwash Peña Blanca" height="40" class="me-2">
-                <span><i class="fas fa-car me-2"></i>Carwash Peña Blanca</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <div class="navbar-nav ms-auto">
-                    <a class="nav-link" href="/products"><i class="fas fa-box me-1"></i>Inventario</a>
-                    <a class="nav-link" href="/customers"><i class="fas fa-users me-1"></i>Clientes</a>
-                    <a class="nav-link" href="/sales"><i class="fas fa-shopping-cart me-1"></i>Ventas</a>
-                    <a class="nav-link" href="/sales/new"><i class="fas fa-plus me-1"></i>Nueva Venta</a>
-                    <a class="nav-link" href="/reports"><i class="fas fa-chart-bar me-1"></i>Reportes</a>
-                    <a class="nav-link text-warning" href="/system_logout"><i class="fas fa-sign-out-alt me-1"></i>Cerrar Sesión</a>
-                </div>
-            </div>
-        </div>
-    </nav>
 
-    <div class="container-fluid mt-4">
-        <!-- Estadísticas principales -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-primary text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h5>Productos</h5>
-                                <h2>{{ total_products }}</h2>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-box fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h5>Clientes</h5>
-                                <h2>{{ total_customers }}</h2>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-users fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-info text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <h5>Ventas</h5>
-                                <h2>{{ total_sales }}</h2>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="fas fa-shopping-cart fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-warning text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5>Ingresos Hoy</h5>
-                                <h2>L. {{ "{:,.2f}".format(daily_revenue) }}</h2>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-dollar-sign fa-2x me-2"></i>
-                                <a href="/admin/login" class="text-white" title="Editar promociones">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+{% extends "base.html" %}
 
-        <!-- Ventas recientes -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-clock me-2"></i>Ventas Recientes</h5>
-                    </div>
-                    <div class="card-body">
-                        {% if recent_sales %}
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Factura</th>
-                                        <th>Cliente</th>
-                                        <th>Total</th>
-                                        <th>Fecha</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for sale in recent_sales %}
-                                    <tr>
-                                        <td>{{ sale.invoice_number }}</td>
-                                        <td>{{ sale.customer_name or 'Cliente General' }}</td>
-                                        <td>L. {{ "{:,.2f}".format(sale.total) }}</td>
-                                        <td>{{ sale.created_at }}</td>
-                                        <td>
-                                            <a href="/sales/{{ sale.id }}/invoice" class="btn btn-sm btn-primary">
-                                                <i class="fas fa-eye"></i> Ver
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <p class="text-muted">No hay ventas recientes</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
+{% block title %}Dashboard - Carwash Peña Blanca{% endblock %}
 
-        <!-- Gráficos -->
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-chart-line me-2"></i>Ventas Diarias (Últimos 7 días)</h5>
+{% block content %}
+<style>
+    /* Colores basados en la imagen del carwash */
+    :root {
+        --primary-blue: #1e3a8a;
+        --secondary-blue: #3b82f6;
+        --accent-red: #dc2626;
+        --light-blue: #dbeafe;
+        --dark-blue: #1e40af;
+        --success-green: #059669;
+        --warning-orange: #d97706;
+        --info-cyan: #0891b2;
+    }
+
+    .stats-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+
+    .stats-card.bg-primary {
+        background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)) !important;
+    }
+
+    .stats-card.bg-success {
+        background: linear-gradient(135deg, var(--success-green), #10b981) !important;
+    }
+
+    .stats-card.bg-info {
+        background: linear-gradient(135deg, var(--info-cyan), #06b6d4) !important;
+    }
+
+    .stats-card.bg-warning {
+        background: linear-gradient(135deg, var(--warning-orange), #f59e0b) !important;
+    }
+
+    .content-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        margin-bottom: 30px;
+    }
+
+    .content-card .card-header {
+        background: linear-gradient(135deg, var(--light-blue), #f0f9ff);
+        border-bottom: 2px solid var(--primary-blue);
+        border-radius: 15px 15px 0 0 !important;
+        color: var(--primary-blue);
+        font-weight: 600;
+    }
+
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        background: var(--light-blue);
+        color: var(--primary-blue);
+        font-weight: 600;
+        border: none;
+    }
+
+    .table td {
+        border-color: #e5e7eb;
+        vertical-align: middle;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+        border: none;
+        border-radius: 20px;
+        padding: 8px 20px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(30, 58, 138, 0.3);
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+        padding: 20px;
+    }
+</style>
+
+<!-- Estadísticas principales -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-2">Productos</h6>
+                        <h2 class="mb-0">{{ total_products }}</h2>
                     </div>
-                    <div class="card-body">
-                        <canvas id="dailySalesChart" width="400" height="200"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-chart-bar me-2"></i>Productos Más Vendidos</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="topProductsChart" width="400" height="200"></canvas>
+                    <div>
+                        <i class="fas fa-box fa-2x opacity-75"></i>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-2">Clientes</h6>
+                        <h2 class="mb-0">{{ total_customers }}</h2>
+                    </div>
+                    <div>
+                        <i class="fas fa-users fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-2">Ventas</h6>
+                        <h2 class="mb-0">{{ total_sales }}</h2>
+                    </div>
+                    <div>
+                        <i class="fas fa-shopping-cart fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-2">Ingresos Hoy</h6>
+                        <h2 class="mb-0">L. {{ "{:,.2f}".format(daily_revenue) }}</h2>
+                    </div>
+                    <div>
+                        <i class="fas fa-dollar-sign fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Cargar datos del dashboard
-        async function loadDashboardData() {
-            try {
-                const response = await fetch('/api/dashboard_data');
-                if (!response.ok) {
-                    throw new Error('Error en la respuesta del servidor');
+<!-- Ventas recientes -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card content-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Ventas Recientes</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_sales %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Factura</th>
+                                <th>Cliente</th>
+                                <th>Total</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td><strong>{{ sale.invoice_number }}</strong></td>
+                                <td>{{ sale.customer_name or 'Cliente General' }}</td>
+                                <td><strong>L. {{ "{:,.2f}".format(sale.total) }}</strong></td>
+                                <td>{{ sale.created_at }}</td>
+                                <td>
+                                    <a href="/sales/{{ sale.id }}/invoice" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye me-1"></i> Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No hay ventas recientes</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <div class="card content-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Ventas Diarias (Últimos 7 días)</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="dailySalesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card content-card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Productos Más Vendidos</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="topProductsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Cargar datos del dashboard
+async function loadDashboardData() {
+    try {
+        const response = await fetch('/api/dashboard_data');
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        const data = await response.json();
+
+        // Crear gráfico de ventas diarias
+        createDailySalesChart(data.daily_sales || []);
+
+        // Crear gráfico de productos más vendidos
+        createTopProductsChart(data.top_products || []);
+
+    } catch (error) {
+        console.error('Error cargando datos del dashboard:', error);
+        // Crear gráficos vacíos si hay error
+        createDailySalesChart([]);
+        createTopProductsChart([]);
+    }
+}
+
+function createDailySalesChart(data) {
+    const ctx = document.getElementById('dailySalesChart');
+    if (!ctx) return;
+
+    const chartCtx = ctx.getContext('2d');
+    new Chart(chartCtx, {
+        type: 'line',
+        data: {
+            labels: data.map(item => item.date || 'Sin fecha'),
+            datasets: [{
+                label: 'Ventas (L.)',
+                data: data.map(item => item.total || 0),
+                borderColor: '#1e3a8a',
+                backgroundColor: 'rgba(30, 58, 138, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#1e3a8a',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
                 }
-                const data = await response.json();
-
-                // Crear gráfico de ventas diarias
-                createDailySalesChart(data.daily_sales || []);
-
-                // Crear gráfico de productos más vendidos
-                createTopProductsChart(data.top_products || []);
-
-            } catch (error) {
-                console.error('Error cargando datos del dashboard:', error);
-                // Crear gráficos vacíos si hay error
-                createDailySalesChart([]);
-                createTopProductsChart([]);
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return 'L. ' + value.toLocaleString();
+                        }
+                    }
+                }
             }
         }
+    });
+}
 
-        function createDailySalesChart(data) {
-            const ctx = document.getElementById('dailySalesChart');
-            if (!ctx) return;
+function createTopProductsChart(data) {
+    const ctx = document.getElementById('topProductsChart');
+    if (!ctx) return;
 
-            const chartCtx = ctx.getContext('2d');
-            new Chart(chartCtx, {
-                type: 'line',
-                data: {
-                    labels: data.map(item => item.date || 'Sin fecha'),
-                    datasets: [{
-                        label: 'Ventas (L.)',
-                        data: data.map(item => item.total || 0),
-                        borderColor: 'rgb(75, 192, 192)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+    const chartCtx = ctx.getContext('2d');
+    new Chart(chartCtx, {
+        type: 'doughnut',
+        data: {
+            labels: data.map(item => item.name || 'Sin nombre'),
+            datasets: [{
+                label: 'Cantidad Vendida',
+                data: data.map(item => item.quantity || 0),
+                backgroundColor: [
+                    '#1e3a8a',
+                    '#3b82f6',
+                    '#059669',
+                    '#d97706',
+                    '#dc2626'
+                ],
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
                     }
                 }
-            });
+            }
         }
+    });
+}
 
-        function createTopProductsChart(data) {
-            const ctx = document.getElementById('topProductsChart');
-            if (!ctx) return;
-
-            const chartCtx = ctx.getContext('2d');
-            new Chart(chartCtx, {
-                type: 'bar',
-                data: {
-                    labels: data.map(item => item.name || 'Sin nombre'),
-                    datasets: [{
-                        label: 'Cantidad Vendida',
-                        data: data.map(item => item.quantity || 0),
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.8)',
-                            'rgba(54, 162, 235, 0.8)',
-                            'rgba(255, 205, 86, 0.8)',
-                            'rgba(75, 192, 192, 0.8)',
-                            'rgba(153, 102, 255, 0.8)'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
-
-        // Cargar datos cuando la página esté lista
-        document.addEventListener('DOMContentLoaded', function() {
-            loadDashboardData();
-        });
-    </script>
-</body>
-</html>
+// Cargar datos cuando la página esté lista
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+});
+</script>
+{% endblock %}
