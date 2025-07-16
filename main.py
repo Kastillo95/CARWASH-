@@ -89,7 +89,25 @@ def init_db():
             start_date DATE,
             end_date DATE,
             is_active BOOLEAN DEFAULT 1,
+            promo_type TEXT DEFAULT 'discount',
+            required_visits INTEGER DEFAULT 0,
+            free_product_name TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Customer loyalty tracking
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS customer_loyalty (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER,
+            promotion_id INTEGER,
+            visits_count INTEGER DEFAULT 0,
+            earned_rewards TEXT,
+            last_visit TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES customers (id),
+            FOREIGN KEY (promotion_id) REFERENCES promotions (id)
         )
     ''')
 
@@ -254,7 +272,7 @@ def dashboard():
                          total_products=total_products,
                          total_customers=total_customers, 
                          total_sales=total_sales,
-                         daily_revenue=daily_revenue,
+                         daily_revenue=f"L. {daily_revenue:,.2f}",
                          recent_sales=recent_sales)
 
 @app.route('/products')
@@ -352,10 +370,20 @@ def sales():
 def new_sale():
     if request.method == 'POST':
         customer_id = request.form.get('customer_id') or None
+        new_customer_data = request.form.get('new_customer_data')
         payment_method = request.form['payment_method']
         items = json.loads(request.form['items'])
 
         conn = get_db_connection()
+
+        # Handle new customer
+        if customer_id == 'new' and new_customer_data:
+            customer_data = json.loads(new_customer_data)
+            cursor = conn.execute(
+                "INSERT INTO customers (name, phone, email, address) VALUES (?, ?, ?, ?)",
+                (customer_data['name'], customer_data['phone'], customer_data['email'], customer_data['address'])
+            )
+            customer_id = cursor.lastrowid
 
         # Calculate totals
         subtotal = sum(float(item['subtotal']) for item in items)
@@ -375,16 +403,24 @@ def new_sale():
 
         # Insert sale items and update stock
         for item in items:
+            product_id = item['product_id']
+            
+            # Handle manual products
+            if str(product_id).startswith('manual_'):
+                # Create temporary product entry or use NULL
+                product_id = None
+            
             conn.execute(
                 "INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)",
-                (sale_id, item['product_id'], item['quantity'], item['unit_price'], item['subtotal'])
+                (sale_id, product_id, item['quantity'], item['unit_price'], item['subtotal'])
             )
 
-            # Update product stock
-            conn.execute(
-                "UPDATE products SET stock = stock - ? WHERE id = ?",
-                (item['quantity'], item['product_id'])
-            )
+            # Update product stock only for existing products
+            if product_id and not str(item['product_id']).startswith('manual_'):
+                conn.execute(
+                    "UPDATE products SET stock = stock - ? WHERE id = ?",
+                    (item['quantity'], product_id)
+                )
 
         conn.commit()
         conn.close()
@@ -666,6 +702,52 @@ def toggle_promotion(promo_id):
     conn.commit()
     conn.close()
 
+    return redirect(url_for('promotions'))
+
+@app.route('/promotions/edit', methods=['POST'])
+@require_system_login()
+def edit_promotion():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    promo_id = request.form['promo_id']
+    name = request.form['name']
+    description = request.form['description']
+    promo_type = request.form['promo_type']
+    min_purchase = float(request.form['min_purchase'])
+    start_date = request.form['start_date']
+    end_date = request.form['end_date']
+
+    if promo_type == 'loyalty':
+        discount_percentage = 0
+        discount_amount = 0
+        max_discount = 0
+        required_visits = int(request.form['required_visits'])
+        free_product_name = request.form['free_product_name']
+    else:
+        discount_type = request.form['discount_type']
+        discount_value = float(request.form['discount_value'])
+        max_discount = float(request.form['max_discount'])
+        required_visits = 0
+        free_product_name = ''
+
+        discount_percentage = discount_value if discount_type == 'percentage' else 0
+        discount_amount = discount_value if discount_type == 'fixed' else 0
+
+    conn = get_db_connection()
+    conn.execute("""
+        UPDATE promotions SET 
+        name = ?, description = ?, discount_percentage = ?, discount_amount = ?, 
+        min_purchase = ?, max_discount = ?, start_date = ?, end_date = ?,
+        promo_type = ?, required_visits = ?, free_product_name = ?
+        WHERE id = ?
+    """, (name, description, discount_percentage, discount_amount, min_purchase, 
+          max_discount, start_date, end_date, promo_type, required_visits, 
+          free_product_name, promo_id))
+    conn.commit()
+    conn.close()
+
+    flash('Promoción actualizada exitosamente', 'success')
     return redirect(url_for('promotions'))
 
 @app.route('/api/check_promotion')

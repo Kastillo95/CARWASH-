@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block title %}Promociones - Carwash Peña Blanca{% endblock %}
@@ -69,6 +68,9 @@
                                        class="btn btn-sm btn-outline-warning">
                                         <i class="fas fa-toggle-{% if promo.is_active %}on{% else %}off{% endif %}"></i>
                                     </a>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editPromotion('{{promo.id}}', '{{promo.name}}', '{{promo.description}}', '{{promo.discount_percentage}}', '{{promo.discount_amount}}', '{{promo.min_purchase}}', '{{promo.max_discount}}', '{{promo.start_date}}', '{{promo.end_date}}', '{{promo.promo_type}}', '{{promo.required_visits}}', '{{promo.free_product}}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
                                 </td>
                                 {% endif %}
                             </tr>
@@ -83,4 +85,154 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Promotion Modal -->
+<div class="modal fade" id="editPromotionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Promoción</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/promotions/edit">
+                <div class="modal-body">
+                    <input type="hidden" id="edit_promo_id" name="promo_id">
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="edit_name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Promoción</label>
+                                <select class="form-control" id="edit_promo_type" name="promo_type" onchange="toggleEditPromoFields()">
+                                    <option value="discount">Descuento</option>
+                                    <option value="loyalty">Programa de Lealtad</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="2"></textarea>
+                    </div>
+
+                    <div id="edit_discount_fields">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Tipo de Descuento</label>
+                                    <select class="form-control" id="edit_discount_type" name="discount_type">
+                                        <option value="percentage">Porcentaje</option>
+                                        <option value="fixed">Monto Fijo</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Valor del Descuento</label>
+                                    <input type="number" class="form-control" id="edit_discount_value" name="discount_value" step="0.01" min="0">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Descuento Máximo (L.)</label>
+                                    <input type="number" class="form-control" id="edit_max_discount" name="max_discount" step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="edit_loyalty_fields" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Visitas Requeridas</label>
+                                    <input type="number" class="form-control" id="edit_required_visits" name="required_visits" min="1">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Producto/Servicio Gratis</label>
+                                    <input type="text" class="form-control" id="edit_free_product" name="free_product_name" placeholder="Ej: Lavado básico, Desodorante">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Compra Mínima (L.)</label>
+                                <input type="number" class="form-control" id="edit_min_purchase" name="min_purchase" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" id="edit_start_date" name="start_date">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" id="edit_end_date" name="end_date">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editPromotion(id, name, description, discountPercentage, discountAmount, minPurchase, maxDiscount, startDate, endDate, promoType, requiredVisits, freeProduct) {
+    document.getElementById('edit_promo_id').value = id;
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_description').value = description;
+    document.getElementById('edit_min_purchase').value = minPurchase;
+    document.getElementById('edit_max_discount').value = maxDiscount;
+    document.getElementById('edit_start_date').value = startDate;
+    document.getElementById('edit_end_date').value = endDate;
+    document.getElementById('edit_promo_type').value = promoType || 'discount';
+    document.getElementById('edit_required_visits').value = requiredVisits || '';
+    document.getElementById('edit_free_product').value = freeProduct || '';
+
+    if (discountPercentage > 0) {
+        document.getElementById('edit_discount_type').value = 'percentage';
+        document.getElementById('edit_discount_value').value = discountPercentage;
+    } else {
+        document.getElementById('edit_discount_type').value = 'fixed';
+        document.getElementById('edit_discount_value').value = discountAmount;
+    }
+
+    toggleEditPromoFields();
+
+    new bootstrap.Modal(document.getElementById('editPromotionModal')).show();
+}
+
+function toggleEditPromoFields() {
+    const promoType = document.getElementById('edit_promo_type').value;
+    const discountFields = document.getElementById('edit_discount_fields');
+    const loyaltyFields = document.getElementById('edit_loyalty_fields');
+
+    if (promoType === 'loyalty') {
+        discountFields.style.display = 'none';
+        loyaltyFields.style.display = 'block';
+    } else {
+        discountFields.style.display = 'block';
+        loyaltyFields.style.display = 'none';
+    }
+}
+</script>
+
 {% endblock %}

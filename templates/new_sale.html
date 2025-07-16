@@ -30,7 +30,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="product_select" class="form-label">O Seleccionar de la Lista</label>
+                        <label for="product_select" class="form-label">Seleccionar de la Lista</label>
                         <select class="form-control" id="product_select">
                             <option value="">-- Seleccionar --</option>
                             {% for product in products %}
@@ -42,7 +42,26 @@
                                 {% endif %}
                             </option>
                             {% endfor %}
+                            <option value="manual">+ Producto/Servicio Manual</option>
                         </select>
+                    </div>
+
+                    <div id="manual_product_form" style="display: none;" class="mb-3 p-3 border rounded">
+                        <h6>Producto/Servicio Manual</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <input type="text" class="form-control mb-2" id="manual_product_name" placeholder="Nombre del Producto/Servicio *">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" class="form-control mb-2" id="manual_product_price" placeholder="Precio L." step="0.01" min="0">
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" class="form-control mb-2" id="manual_product_quantity" placeholder="Cantidad" min="1" value="1">
+                            </div>
+                            <div class="col-md-3">
+                                <button type="button" class="btn btn-success btn-sm w-100" onclick="addManualProduct()">Agregar</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="table-responsive">
@@ -70,13 +89,39 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label for="customer_id" class="form-label">Cliente (Opcional)</label>
-                        <select class="form-control" id="customer_id" name="customer_id">
+                        <label for="customer_select" class="form-label">Cliente</label>
+                        <select class="form-control" id="customer_select" onchange="selectCustomer()">
                             <option value="">Cliente General</option>
                             {% for customer in customers %}
                             <option value="{{ customer.id }}">{{ customer.name }}</option>
                             {% endfor %}
+                            <option value="new">+ Agregar Nuevo Cliente</option>
                         </select>
+                        
+                        <div id="new_customer_form" style="display: none;" class="mt-3 p-3 border rounded">
+                            <h6>Nuevo Cliente</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control mb-2" id="new_customer_name" placeholder="Nombre *">
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control mb-2" id="new_customer_phone" placeholder="Teléfono">
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="email" class="form-control mb-2" id="new_customer_email" placeholder="Email">
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control mb-2" id="new_customer_address" placeholder="Dirección">
+                                </div>
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-sm btn-success" onclick="addNewCustomer()">Agregar</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" onclick="cancelNewCustomer()">Cancelar</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" name="customer_id" id="customer_id">
+                        <input type="hidden" name="new_customer_data" id="new_customer_data">
                     </div>
 
                     <div class="mb-3">
@@ -92,7 +137,7 @@
                     <hr>
 
                     <div class="mb-3">
-                        <strong>Total: $<span id="total_amount">0</span></strong>
+                        <strong>Total: L. <span id="total_amount">0</span></strong>
                     </div>
 
                     <input type="hidden" name="items" id="items_input">
@@ -120,6 +165,12 @@ let totalAmount = 0;
 
 document.getElementById('product_select').addEventListener('change', function() {
     const select = this;
+    if (select.value === 'manual') {
+        document.getElementById('manual_product_form').style.display = 'block';
+        select.value = '';
+        return;
+    }
+    
     if (select.value) {
         const option = select.options[select.selectedIndex];
         const productId = parseInt(select.value);
@@ -152,6 +203,82 @@ document.getElementById('product_select').addEventListener('change', function() 
         updateTotal();
     }
 });
+
+function selectCustomer() {
+    const select = document.getElementById('customer_select');
+    if (select.value === 'new') {
+        document.getElementById('new_customer_form').style.display = 'block';
+        document.getElementById('customer_id').value = '';
+    } else {
+        document.getElementById('new_customer_form').style.display = 'none';
+        document.getElementById('customer_id').value = select.value;
+        document.getElementById('new_customer_data').value = '';
+    }
+}
+
+function addNewCustomer() {
+    const name = document.getElementById('new_customer_name').value.trim();
+    const phone = document.getElementById('new_customer_phone').value.trim();
+    const email = document.getElementById('new_customer_email').value.trim();
+    const address = document.getElementById('new_customer_address').value.trim();
+    
+    if (!name) {
+        alert('El nombre es requerido');
+        return;
+    }
+    
+    const customerData = { name, phone, email, address };
+    document.getElementById('new_customer_data').value = JSON.stringify(customerData);
+    document.getElementById('customer_id').value = 'new';
+    
+    // Update display
+    const select = document.getElementById('customer_select');
+    const newOption = document.createElement('option');
+    newOption.value = 'temp_new';
+    newOption.textContent = name + ' (Nuevo)';
+    newOption.selected = true;
+    select.insertBefore(newOption, select.lastElementChild);
+    
+    document.getElementById('new_customer_form').style.display = 'none';
+}
+
+function cancelNewCustomer() {
+    document.getElementById('new_customer_form').style.display = 'none';
+    document.getElementById('customer_select').value = '';
+}
+
+function addManualProduct() {
+    const name = document.getElementById('manual_product_name').value.trim();
+    const price = parseFloat(document.getElementById('manual_product_price').value);
+    const quantity = parseInt(document.getElementById('manual_product_quantity').value) || 1;
+    
+    if (!name || !price || price <= 0) {
+        alert('Nombre y precio son requeridos');
+        return;
+    }
+    
+    // Generate temporary ID for manual products
+    const tempId = 'manual_' + Date.now();
+    
+    saleItems.push({
+        product_id: tempId,
+        product_name: name,
+        quantity: quantity,
+        unit_price: price,
+        subtotal: price * quantity,
+        is_manual: true
+    });
+    
+    // Clear form
+    document.getElementById('manual_product_name').value = '';
+    document.getElementById('manual_product_price').value = '';
+    document.getElementById('manual_product_quantity').value = '1';
+    document.getElementById('manual_product_form').style.display = 'none';
+    document.getElementById('product_select').value = '';
+    
+    updateSaleTable();
+    updateTotal();
+}
 
 function updateSaleTable() {
     const tbody = document.querySelector('#sale_items tbody');
