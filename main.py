@@ -887,6 +887,127 @@ def dashboard_data():
         'customer_loyalty': [{'name': row['name'], 'total_visits': row['total_visits'], 'total_spent': row['total_spent'], 'last_visit': row['last_visit']} for row in customer_loyalty]
     })
 
+@app.route('/api/add_promotion', methods=['POST'])
+@require_system_login()
+def api_add_promotion():
+    try:
+        data = request.json
+        
+        conn = get_db_connection()
+        conn.execute("""
+            INSERT INTO promotions (name, description, discount_percentage, discount_amount, 
+                                  min_purchase, max_discount, start_date, end_date, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data['name'],
+            data['description'],
+            data['discount_value'] if data['discount_type'] == 'percentage' else 0,
+            data['discount_value'] if data['discount_type'] == 'fixed' else 0,
+            0,  # min_purchase
+            0,  # max_discount
+            data['start_date'],
+            data['end_date'],
+            data['active']
+        ))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/edit_promotion', methods=['POST'])
+@require_system_login()
+def api_edit_promotion():
+    try:
+        data = request.json
+        
+        conn = get_db_connection()
+        conn.execute("""
+            UPDATE promotions SET name = ?, description = ?, discount_percentage = ?, 
+                   discount_amount = ?, start_date = ?, end_date = ?, is_active = ?
+            WHERE id = ?
+        """, (
+            data['name'],
+            data['description'],
+            data['discount_value'] if data['discount_type'] == 'percentage' else 0,
+            data['discount_value'] if data['discount_type'] == 'fixed' else 0,
+            data['start_date'],
+            data['end_date'],
+            data['active'],
+            data['promotion_id']
+        ))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/get_promotion/<int:promotion_id>')
+@require_system_login()
+def api_get_promotion(promotion_id):
+    try:
+        conn = get_db_connection()
+        promotion = conn.execute("SELECT * FROM promotions WHERE id = ?", (promotion_id,)).fetchone()
+        conn.close()
+        
+        if promotion:
+            return jsonify({
+                'id': promotion['id'],
+                'name': promotion['name'],
+                'description': promotion['description'],
+                'discount_type': 'percentage' if promotion['discount_percentage'] > 0 else 'fixed',
+                'discount_value': promotion['discount_percentage'] if promotion['discount_percentage'] > 0 else promotion['discount_amount'],
+                'start_date': promotion['start_date'],
+                'end_date': promotion['end_date'],
+                'active': promotion['is_active']
+            })
+        else:
+            return jsonify({'error': 'Promoción no encontrada'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/delete_promotion/<int:promotion_id>', methods=['DELETE'])
+@require_system_login()
+def api_delete_promotion(promotion_id):
+    try:
+        conn = get_db_connection()
+        conn.execute("DELETE FROM promotions WHERE id = ?", (promotion_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/upload_background', methods=['POST'])
+@require_system_login()
+def upload_background():
+    if 'background_file' not in request.files:
+        return jsonify({'success': False, 'message': 'No se seleccionó archivo'})
+    
+    file = request.files['background_file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No se seleccionó archivo'})
+    
+    if file and file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        filename = 'custom_background.' + file.filename.split('.')[-1]
+        file.save(os.path.join('static', filename))
+        
+        # Guardar en sesión la preferencia
+        session['custom_background'] = filename
+        
+        return jsonify({'success': True, 'filename': filename})
+    else:
+        return jsonify({'success': False, 'message': 'Solo archivos PNG, JPG y JPEG son permitidos'})
+
+@app.route('/reset_background', methods=['POST'])
+@require_system_login()
+def reset_background():
+    session.pop('custom_background', None)
+    return jsonify({'success': True})
+
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist
     os.makedirs('templates', exist_ok=True)

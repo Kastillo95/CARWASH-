@@ -26,7 +26,7 @@
             transform: translate(-50%, -50%);
             width: 80vw;
             height: 80vh;
-            background-image: url('/static/IMG-20250624-WA0043_1752632246954.jpg');
+            background-image: url('/static/{% if session.custom_background %}{{ session.custom_background }}{% else %}IMG-20250624-WA0043_1752632246954.jpg{% endif %}');
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
@@ -95,7 +95,7 @@
 
         /* Content container */
         .content-container {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(10px);
             border-radius: 15px;
             margin: 0 20px;
@@ -103,6 +103,40 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             position: relative;
             z-index: 1;
+        }
+
+        /* Background controls */
+        .background-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .background-controls h6 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .file-upload-btn {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-upload-btn input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-upload-btn .btn {
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
         }
 
         .card {
@@ -144,6 +178,22 @@
     </style>
 </head>
 <body>
+    <!-- Background Controls -->
+    <div class="background-controls">
+        <h6><i class="fas fa-image me-2"></i>Personalizar Fondo</h6>
+        <div class="d-flex flex-column gap-2">
+            <div class="file-upload-btn">
+                <input type="file" id="backgroundFile" accept=".jpg,.jpeg,.png" onchange="uploadBackground()">
+                <label for="backgroundFile" class="btn btn-primary btn-sm">
+                    <i class="fas fa-upload me-1"></i>Subir Foto
+                </label>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="resetBackground()">
+                <i class="fas fa-undo me-1"></i>Restaurar
+            </button>
+        </div>
+    </div>
+
     <!-- Main Title -->
     <h1 class="main-title">CARWASH PEÑA BLANCA</h1>
 
@@ -191,5 +241,53 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function uploadBackground() {
+            const fileInput = document.getElementById('backgroundFile');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('background_file', file);
+            
+            fetch('/upload_background', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Recargar la página para aplicar el nuevo fondo
+                    location.reload();
+                } else {
+                    alert('Error al subir imagen: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al subir imagen');
+            });
+        }
+        
+        function resetBackground() {
+            fetch('/reset_background', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error al restaurar fondo');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al restaurar fondo');
+            });
+        }
+    </script>
 </body>
 </html>

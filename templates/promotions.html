@@ -38,16 +38,16 @@
                                 <td>{{ promotion.name }}</td>
                                 <td>{{ promotion.description }}</td>
                                 <td>
-                                    {% if promotion.discount_type == 'percentage' %}
-                                        {{ promotion.discount_value }}%
+                                    {% if promotion.discount_percentage > 0 %}
+                                        {{ promotion.discount_percentage }}%
                                     {% else %}
-                                        L. {{ promotion.discount_value }}
+                                        L. {{ promotion.discount_amount }}
                                     {% endif %}
                                 </td>
                                 <td>{{ promotion.start_date }}</td>
                                 <td>{{ promotion.end_date }}</td>
                                 <td>
-                                    {% if promotion.active %}
+                                    {% if promotion.is_active %}
                                         <span class="badge bg-success">Activa</span>
                                     {% else %}
                                         <span class="badge bg-secondary">Inactiva</span>
